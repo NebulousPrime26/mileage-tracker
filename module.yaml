@@ -9,10 +9,6 @@ dependencies:
 
 settings:
   android:
-<<<<<<< HEAD
-    namespace: "com.jetbrains.sample.app"
-=======
     namespace: "com.nebulousprime26.mileage_tracker"
->>>>>>> e57ac8f (updated android namespace)
   compose: enabled
   junit: junit-4
