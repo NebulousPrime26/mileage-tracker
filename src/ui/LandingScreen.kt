@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker
+package com.nebulousprime26.mileage_tracker.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
