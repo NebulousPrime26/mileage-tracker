@@ -13,4 +13,7 @@ data class Trip(
     val endMileage: Double,
     val privateUse: Boolean = false,
     val notes: String = "",
-)
+) {
+    val distanceMileage: Double
+        get() = endMileage - startMileage
+}
