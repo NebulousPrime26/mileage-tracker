@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<<<<<<< HEAD
     <application>
+=======
+    <application android:label="@string/app_name">
+>>>>>>> 961656e (changed app name)
         <activity android:name="com.jetbrains.sample.app.MainActivity"
                   android:theme="@style/Theme.AppCompat.Light"
                   android:exported="true">
