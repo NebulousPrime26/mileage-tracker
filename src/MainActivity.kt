@@ -1,36 +1,22 @@
 package com.nebulousprime26.mileage_tracker
 
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 
-
-@Composable
-fun Screen() {
-    MaterialTheme() {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            BasicText("Hello, World!")
-        }
-    }
-}
-
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Screen()
+            MaterialTheme {
+                LandingScreen(
+                    onContinue = {Toast.makeText(this, "Continue", Toast.LENGTH_SHORT).show()},
+                    onImport = {Toast.makeText(this, "Import", Toast.LENGTH_SHORT).show()},
+                    onExport = {Toast.makeText(this, "Export", Toast.LENGTH_SHORT).show()},
+                )
+            }
         }
     }
 }
