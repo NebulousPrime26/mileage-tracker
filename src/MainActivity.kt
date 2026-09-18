@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-package com.jetbrains.sample.app
-=======
 package com.nebulousprime26.mileage_tracker
->>>>>>> e57ac8f (updated android namespace)
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
