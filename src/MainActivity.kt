@@ -29,6 +29,7 @@ class MainActivity : ComponentActivity() {
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
 
                 val maxEndMileage by vm.maxEndMileage.collectAsStateWithLifecycle()
+                val lastEndPostalCode by vm.lastEndPostalCode.collectAsStateWithLifecycle()
 
                 BackHandler(enabled = screen != Screen.Landing) {
                     when (screen) {
@@ -66,6 +67,7 @@ class MainActivity : ComponentActivity() {
                     Screen.Entry -> TripEntryScreen(
                         existingTrip = editingTrip,
                         defaultStartMileage = maxEndMileage,
+                        defaultStartPostalCode = lastEndPostalCode,
                         onSave = { trip ->
                             if (editingTrip == null) {
                                 vm.addTrip(trip)
