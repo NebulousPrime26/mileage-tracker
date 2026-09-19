@@ -1,5 +1,6 @@
 package com.nebulousprime26.mileage_tracker.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,17 +26,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nebulousprime26.mileage_tracker.data.Trip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-import com.nebulousprime26.mileage_tracker.data.Trip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripsScreen(
     viewModel: TripViewModel,
     onAddTrip: () -> Unit,
+    onEditTrip: (Trip) -> Unit,
     onBack: () -> Unit,
 ) {
     val trips by viewModel.trips.collectAsStateWithLifecycle()
@@ -51,7 +52,6 @@ fun TripsScreen(
                 },
             )
         },
-
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddTrip,
@@ -78,12 +78,18 @@ fun TripsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = 88.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(trips, key = { it.id }) { trip ->
                     TripRow(
                         trip = trip,
+                        onClick = { onEditTrip(trip) },
                         onDelete = { viewModel.deleteTrip(trip.id) },
                     )
                 }
@@ -93,11 +99,19 @@ fun TripsScreen(
 }
 
 @Composable
-private fun TripRow(trip: Trip, onDelete: () -> Unit) {
+private fun TripRow(
+    trip: Trip,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
     val dateText = formatter.format(Date(trip.date))
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

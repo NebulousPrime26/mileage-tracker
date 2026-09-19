@@ -29,9 +29,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nebulousprime26.mileage_tracker.data.Trip
 import java.text.SimpleDateFormat
@@ -41,18 +41,34 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripEntryScreen(
+    existingTrip: Trip? = null,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
-    var startPostalCode by remember { mutableStateOf("") }
-    var endPostalCode by remember { mutableStateOf("") }
-    var startMileageText by remember { mutableStateOf("") }
-    var endMileageText by remember { mutableStateOf("") }
-    var privateUse by remember { mutableStateOf(false) }
-    var notes by remember { mutableStateOf("") }
+    val isEditing = existingTrip != null
+    val tripId = existingTrip?.id ?: 0L
 
-    // Date state — epoch millis, defaults to today
-    var dateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var startPostalCode by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.startPostalCode ?: "")
+    }
+    var endPostalCode by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.endPostalCode ?: "")
+    }
+    var startMileageText by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.startMileage?.toString() ?: "")
+    }
+    var endMileageText by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.endMileage?.toString() ?: "")
+    }
+    var privateUse by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.privateUse ?: false)
+    }
+    var notes by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.notes ?: "")
+    }
+    var dateMillis by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.date ?: System.currentTimeMillis())
+    }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val startMileage = startMileageText.toDoubleOrNull()
@@ -62,7 +78,9 @@ fun TripEntryScreen(
         endMileage >= startMileage
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("New trip") }) },
+        topBar = {
+            TopAppBar(title = { Text(if (isEditing) "Edit trip" else "New trip") })
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -72,7 +90,6 @@ fun TripEntryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Date field ───────────────────────────────────────────
             DateField(
                 dateMillis = dateMillis,
                 onClick = { showDatePicker = true },
@@ -136,6 +153,7 @@ fun TripEntryScreen(
                 onClick = {
                     onSave(
                         Trip(
+                            id = tripId,
                             date = dateMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
@@ -151,7 +169,7 @@ fun TripEntryScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             ) {
-                Text("Save trip")
+                Text(if (isEditing) "Save changes" else "Save trip")
             }
 
             OutlinedButton(
@@ -163,7 +181,6 @@ fun TripEntryScreen(
         }
     }
 
-    // ── Date picker dialog ───────────────────────────────────────────
     if (showDatePicker) {
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = dateMillis,
@@ -192,10 +209,6 @@ fun TripEntryScreen(
     }
 }
 
-/**
- * A read-only text field that looks like a normal form field but opens
- * the date picker when tapped anywhere on its surface.
- */
 @Composable
 private fun DateField(
     dateMillis: Long,
@@ -213,7 +226,6 @@ private fun DateField(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        // Transparent overlay that captures taps across the whole field
         Box(
             modifier = Modifier
                 .matchParentSize()
