@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
                 var screen by remember { mutableStateOf(Screen.Landing) }
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
 
+                val trips by vm.trips.collectAsStateWithLifecycle()
                 val maxEndMileage by vm.maxEndMileage.collectAsStateWithLifecycle()
                 val lastEndPostalCode by vm.lastEndPostalCode.collectAsStateWithLifecycle()
 
@@ -66,6 +67,7 @@ class MainActivity : ComponentActivity() {
 
                     Screen.Entry -> TripEntryScreen(
                         existingTrip = editingTrip,
+                        existingTrips = trips,
                         defaultStartMileage = maxEndMileage,
                         defaultStartPostalCode = lastEndPostalCode,
                         onSave = { trip ->

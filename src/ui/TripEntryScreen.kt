@@ -49,6 +49,7 @@ import java.util.TimeZone
 @Composable
 fun TripEntryScreen(
     existingTrip: Trip? = null,
+    existingTrips: List<Trip> = emptyList(),
     defaultStartMileage: Double? = null,
     defaultStartPostalCode: String? = null,
     onSave: (Trip) -> Unit,
@@ -81,7 +82,6 @@ fun TripEntryScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    // Holds the date between the two dialogs, before the time is chosen.
     var pendingDateUtcMillis by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode) {
@@ -98,11 +98,30 @@ fun TripEntryScreen(
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
 
+    // A trip's [start, end] range must not intersect any other trip's range.
+    // Touching at a boundary (one trip ends where the next begins) is allowed —
+    // that's the normal chaining pattern for a mileage log. Overlap requires
+    // strict inequality on both sides.
+    val conflictingTrip: Trip? = if (
+        startMileage == null ||
+        endMileage == null ||
+        endMileage < startMileage
+    ) {
+        null
+    } else {
+        existingTrips.firstOrNull { other ->
+            other.id != existingTrip?.id &&
+                startMileage < other.endMileage &&
+                other.startMileage < endMileage
+        }
+    }
+
     val canSave = startPostalCode.isNotBlank() &&
         endPostalCode.isNotBlank() &&
         startMileage != null &&
         endMileage != null &&
-        endMileage >= startMileage
+        endMileage >= startMileage &&
+        conflictingTrip == null
 
     Scaffold(
         topBar = {
@@ -155,6 +174,7 @@ fun TripEntryScreen(
                 onValueChange = { startMileageText = it },
                 label = { Text("Start mileage *") },
                 singleLine = true,
+                isError = conflictingTrip != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -164,6 +184,7 @@ fun TripEntryScreen(
                 onValueChange = { endMileageText = it },
                 label = { Text("End mileage *") },
                 singleLine = true,
+                isError = conflictingTrip != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -171,6 +192,18 @@ fun TripEntryScreen(
             if (startMileage != null && endMileage != null && endMileage < startMileage) {
                 Text(
                     text = "⚠ End mileage must be greater than or equal to start mileage",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            if (conflictingTrip != null) {
+                val formatter = remember {
+                    SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+                }
+                Text(
+                    text = "⚠ Mileage range overlaps an existing trip " +
+                        "(${conflictingTrip.startMileage}–${conflictingTrip.endMileage} km " +
+                        "on ${formatter.format(Date(conflictingTrip.date))})",
                     color = MaterialTheme.colorScheme.error,
                 )
             }
@@ -230,9 +263,6 @@ fun TripEntryScreen(
 
     // ── Date picker ──────────────────────────────────────────────────
     if (showDatePicker) {
-        // Material 3's DatePicker works in UTC. Convert the local time to a
-        // UTC midnight representing the same calendar date, so the dialog
-        // highlights the correct day.
         val initialUtcDateMillis = remember(dateTimeMillis) {
             val local = Calendar.getInstance().apply { timeInMillis = dateTimeMillis }
             Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
@@ -298,9 +328,6 @@ fun TripEntryScreen(
                 TextButton(
                     onClick = {
                         val dateUtc = pendingDateUtcMillis ?: return@TextButton
-                        // Extract the calendar date from the UTC value the
-                        // DatePicker produced, then recombine with the chosen
-                        // hour/minute in the device's local timezone.
                         val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                             timeInMillis = dateUtc
                         }
