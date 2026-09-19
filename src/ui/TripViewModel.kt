@@ -28,6 +28,20 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList()
         )
 
+    val maxEndMileage: StateFlow<Double?> = dao.getMaxEndMileage()
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = null,
+    )
+    
+    val lastEndPostalCode: StateFlow<String?> = dao.getLastEndPostalCode()
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = null,
+    )
+    
     fun addTrip(trip: Trip) {
         viewModelScope.launch { dao.insert(trip) }
     }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.ui.LandingScreen
@@ -27,8 +28,10 @@ class MainActivity : ComponentActivity() {
                 var screen by remember { mutableStateOf(Screen.Landing) }
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
 
-                // Intercept the system back gesture/button.
-                // Enabled only on non-Landing screens — on Landing, back exits the app.
+                val trips by vm.trips.collectAsStateWithLifecycle()
+                val maxEndMileage by vm.maxEndMileage.collectAsStateWithLifecycle()
+                val lastEndPostalCode by vm.lastEndPostalCode.collectAsStateWithLifecycle()
+
                 BackHandler(enabled = screen != Screen.Landing) {
                     when (screen) {
                         Screen.Entry -> {
@@ -64,6 +67,9 @@ class MainActivity : ComponentActivity() {
 
                     Screen.Entry -> TripEntryScreen(
                         existingTrip = editingTrip,
+                        existingTrips = trips,
+                        defaultStartMileage = maxEndMileage,
+                        defaultStartPostalCode = lastEndPostalCode,
                         onSave = { trip ->
                             if (editingTrip == null) {
                                 vm.addTrip(trip)

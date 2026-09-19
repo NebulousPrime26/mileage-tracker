@@ -31,6 +31,12 @@ interface TripDao {
     @Query("SELECT * FROM trips WHERE privateUse = :isPrivate ORDER BY date DESC")
     fun getByPrivateUse(isPrivate: Boolean): Flow<List<Trip>>
 
+    @Query("SELECT MAX(endMileage) FROM trips")
+    fun getMaxEndMileage(): Flow<Double?>
+    
+    @Query("SELECT endPostalCode FROM trips ORDER BY date DESC LIMIT 1")
+    fun getLastEndPostalCode(): Flow<String?>
+
     @Insert
     suspend fun insert(trip: Trip)
 
