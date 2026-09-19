@@ -2,6 +2,7 @@ package com.nebulousprime26.mileage_tracker
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
@@ -25,6 +26,21 @@ class MainActivity : ComponentActivity() {
                 val vm: TripViewModel = viewModel()
                 var screen by remember { mutableStateOf(Screen.Landing) }
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
+
+                // Intercept the system back gesture/button.
+                // Enabled only on non-Landing screens — on Landing, back exits the app.
+                BackHandler(enabled = screen != Screen.Landing) {
+                    when (screen) {
+                        Screen.Entry -> {
+                            editingTrip = null
+                            screen = Screen.Trips
+                        }
+                        Screen.Trips -> {
+                            screen = Screen.Landing
+                        }
+                        Screen.Landing -> { /* unreachable, enabled = false */ }
+                    }
+                }
 
                 when (screen) {
                     Screen.Landing -> LandingScreen(
