@@ -32,6 +32,10 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { dao.insert(trip) }
     }
 
+    fun updateTrip(trip: Trip) {
+        viewModelScope.launch { dao.update(trip) }
+    }
+
     fun deleteTrip(id: Long) {
         viewModelScope.launch { dao.deleteById(id) }
     }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.ui.LandingScreen
 import com.nebulousprime26.mileage_tracker.ui.TripEntryScreen
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val vm: TripViewModel = viewModel()
                 var screen by remember { mutableStateOf(Screen.Landing) }
+                var editingTrip by remember { mutableStateOf<Trip?>(null) }
 
                 when (screen) {
                     Screen.Landing -> LandingScreen(
@@ -33,16 +35,32 @@ class MainActivity : ComponentActivity() {
 
                     Screen.Trips -> TripsScreen(
                         viewModel = vm,
-                        onAddTrip = { screen = Screen.Entry },
+                        onAddTrip = {
+                            editingTrip = null
+                            screen = Screen.Entry
+                        },
+                        onEditTrip = { trip ->
+                            editingTrip = trip
+                            screen = Screen.Entry
+                        },
                         onBack = { screen = Screen.Landing },
                     )
 
                     Screen.Entry -> TripEntryScreen(
+                        existingTrip = editingTrip,
                         onSave = { trip ->
-                            vm.addTrip(trip)
+                            if (editingTrip == null) {
+                                vm.addTrip(trip)
+                            } else {
+                                vm.updateTrip(trip)
+                            }
+                            editingTrip = null
                             screen = Screen.Trips
                         },
-                        onCancel = { screen = Screen.Trips },
+                        onCancel = {
+                            editingTrip = null
+                            screen = Screen.Trips
+                        },
                     )
                 }
             }
