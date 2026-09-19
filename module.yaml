@@ -9,6 +9,7 @@ dependencies:
   - androidx.room:room-ktx:2.8.5
   - androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4
   - androidx.lifecycle:lifecycle-runtime-compose:2.9.4
+  - net.zetetic:sqlcipher-android:4.13.0
   - org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0
 
 settings:
