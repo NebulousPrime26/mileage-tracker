@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nebulousprime26.mileage_tracker.data.Trip
@@ -97,17 +98,23 @@ fun TripEntryScreen(
 
             OutlinedTextField(
                 value = startPostalCode,
-                onValueChange = { startPostalCode = it },
+                onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
                 label = { Text("Start postal code") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
             OutlinedTextField(
                 value = endPostalCode,
-                onValueChange = { endPostalCode = it },
+                onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
                 label = { Text("End postal code") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
