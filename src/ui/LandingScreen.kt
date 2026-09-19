@@ -26,7 +26,9 @@ fun LandingScreen(
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -37,21 +39,27 @@ fun LandingScreen(
 
             Button(
                 onClick = onContinue,
-                modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
             ) {
                 Text("Continue")
             }
 
             OutlinedButton(
                 onClick = onImport,
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
             ) {
                 Text("Import")
             }
 
             OutlinedButton(
                 onClick = onExport,
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
             ) {
                 Text("Export")
             }
