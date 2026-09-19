@@ -67,17 +67,16 @@ fun TripEntryScreen(
     var notes by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.notes ?: "")
     }
-    // Null for new trips — the user must pick a date explicitly.
+    // Defaults to today for new trips; uses the saved date when editing.
     var dateMillis by remember(existingTrip?.id) {
-        mutableStateOf(existingTrip?.date)
+        mutableStateOf(existingTrip?.date ?: System.currentTimeMillis())
     }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
 
-    val canSave = dateMillis != null &&
-        startPostalCode.isNotBlank() &&
+    val canSave = startPostalCode.isNotBlank() &&
         endPostalCode.isNotBlank() &&
         startMileage != null &&
         endMileage != null &&
@@ -180,7 +179,7 @@ fun TripEntryScreen(
                     onSave(
                         Trip(
                             id = tripId,
-                            date = dateMillis!!,
+                            date = dateMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
                             startMileage = startMileage!!,
@@ -209,7 +208,7 @@ fun TripEntryScreen(
 
     if (showDatePicker) {
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dateMillis ?: System.currentTimeMillis(),
+            initialSelectedDateMillis = dateMillis,
         )
 
         DatePickerDialog(
@@ -237,11 +236,11 @@ fun TripEntryScreen(
 
 @Composable
 private fun DateField(
-    dateMillis: Long?,
+    dateMillis: Long,
     onClick: () -> Unit,
 ) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
-    val formatted = dateMillis?.let { formatter.format(Date(it)) } ?: ""
+    val formatted = formatter.format(Date(dateMillis))
 
     Box {
         OutlinedTextField(
@@ -249,7 +248,6 @@ private fun DateField(
             onValueChange = {},
             readOnly = true,
             label = { Text("Date *") },
-            placeholder = { Text("Select date") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
