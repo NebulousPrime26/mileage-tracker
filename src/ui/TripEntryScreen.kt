@@ -45,6 +45,7 @@ import java.util.Locale
 fun TripEntryScreen(
     existingTrip: Trip? = null,
     defaultStartMileage: Double? = null,
+    defaultStartPostalCode: String? = null,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -74,12 +75,18 @@ fun TripEntryScreen(
     }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // Seed the start mileage from the highest end mileage seen so far,
-    // but only for new trips, only if the field is still empty, and only
-    // once the value has actually arrived from the database.
-    LaunchedEffect(existingTrip?.id, defaultStartMileage) {
-        if (existingTrip == null && startMileageText.isEmpty() && defaultStartMileage != null) {
-            startMileageText = defaultStartMileage.toString()
+    // Seed new trips from the last registered trip: the odometer continues
+    // from the highest end mileage, and the journey starts where the last
+    // one finished. Only for new trips, only when the field is still empty,
+    // and only once the values have actually arrived from the database.
+    LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode) {
+        if (existingTrip == null) {
+            if (startMileageText.isEmpty() && defaultStartMileage != null) {
+                startMileageText = defaultStartMileage.toString()
+            }
+            if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
+                startPostalCode = defaultStartPostalCode.uppercase(Locale.ROOT)
+            }
         }
     }
 
