@@ -34,7 +34,7 @@ interface TripDao {
     @Query("SELECT MAX(endMileage) FROM trips")
     fun getMaxEndMileage(): Flow<Double?>
     
-    @Query("SELECT endPostalCode FROM trips ORDER BY id DESC LIMIT 1")
+    @Query("SELECT endPostalCode FROM trips ORDER BY date DESC LIMIT 1")
     fun getLastEndPostalCode(): Flow<String?>
 
     @Insert
