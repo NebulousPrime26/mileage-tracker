@@ -15,6 +15,8 @@ dependencies:
 settings:
   android:
     namespace: "com.nebulousprime26.mileage_tracker"
+    signing:
+      enabled: true
   compose: enabled
   junit: junit-4
   kotlin:
