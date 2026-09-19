@@ -13,11 +13,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.ui.LandingScreen
+import com.nebulousprime26.mileage_tracker.ui.StatsScreen
 import com.nebulousprime26.mileage_tracker.ui.TripEntryScreen
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.TripsScreen
 
-private enum class Screen { Landing, Trips, Entry }
+private enum class Screen { Landing, Trips, Entry, Stats }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +37,9 @@ class MainActivity : ComponentActivity() {
                     when (screen) {
                         Screen.Entry -> {
                             editingTrip = null
+                            screen = Screen.Trips
+                        }
+                        Screen.Stats -> {
                             screen = Screen.Trips
                         }
                         Screen.Trips -> {
@@ -62,7 +66,13 @@ class MainActivity : ComponentActivity() {
                             editingTrip = trip
                             screen = Screen.Entry
                         },
+                        onStats = { screen = Screen.Stats },
                         onBack = { screen = Screen.Landing },
+                    )
+
+                    Screen.Stats -> StatsScreen(
+                        viewModel = vm,
+                        onBack = { screen = Screen.Trips },
                     )
 
                     Screen.Entry -> TripEntryScreen(
