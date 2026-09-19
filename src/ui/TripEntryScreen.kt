@@ -67,14 +67,19 @@ fun TripEntryScreen(
     var notes by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.notes ?: "")
     }
+    // Null for new trips — the user must pick a date explicitly.
     var dateMillis by remember(existingTrip?.id) {
-        mutableStateOf(existingTrip?.date ?: System.currentTimeMillis())
+        mutableStateOf(existingTrip?.date)
     }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
-    val canSave = startMileage != null &&
+
+    val canSave = dateMillis != null &&
+        startPostalCode.isNotBlank() &&
+        endPostalCode.isNotBlank() &&
+        startMileage != null &&
         endMileage != null &&
         endMileage >= startMileage
 
@@ -91,6 +96,12 @@ fun TripEntryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Text(
+                text = "* Required field",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             DateField(
                 dateMillis = dateMillis,
                 onClick = { showDatePicker = true },
@@ -99,7 +110,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = startPostalCode,
                 onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
-                label = { Text("Start postal code") },
+                label = { Text("Start postal code *") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
@@ -110,7 +121,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = endPostalCode,
                 onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
-                label = { Text("End postal code") },
+                label = { Text("End postal code *") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
@@ -121,7 +132,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = startMileageText,
                 onValueChange = { startMileageText = it },
-                label = { Text("Start mileage") },
+                label = { Text("Start mileage *") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
@@ -130,7 +141,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = endMileageText,
                 onValueChange = { endMileageText = it },
-                label = { Text("End mileage") },
+                label = { Text("End mileage *") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
@@ -156,12 +167,20 @@ fun TripEntryScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            if (!canSave) {
+                Text(
+                    text = "Fill in all required fields to save.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             Button(
                 onClick = {
                     onSave(
                         Trip(
                             id = tripId,
-                            date = dateMillis,
+                            date = dateMillis!!,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
                             startMileage = startMileage!!,
@@ -190,7 +209,7 @@ fun TripEntryScreen(
 
     if (showDatePicker) {
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dateMillis,
+            initialSelectedDateMillis = dateMillis ?: System.currentTimeMillis(),
         )
 
         DatePickerDialog(
@@ -218,18 +237,19 @@ fun TripEntryScreen(
 
 @Composable
 private fun DateField(
-    dateMillis: Long,
+    dateMillis: Long?,
     onClick: () -> Unit,
 ) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
-    val formatted = formatter.format(Date(dateMillis))
+    val formatted = dateMillis?.let { formatter.format(Date(it)) } ?: ""
 
     Box {
         OutlinedTextField(
             value = formatted,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Date") },
+            label = { Text("Date *") },
+            placeholder = { Text("Select date") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
