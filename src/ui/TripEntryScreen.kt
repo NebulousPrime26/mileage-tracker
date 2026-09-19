@@ -25,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,7 @@ import java.util.Locale
 @Composable
 fun TripEntryScreen(
     existingTrip: Trip? = null,
+    defaultStartMileage: Double? = null,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -67,11 +69,19 @@ fun TripEntryScreen(
     var notes by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.notes ?: "")
     }
-    // Defaults to today for new trips; uses the saved date when editing.
     var dateMillis by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.date ?: System.currentTimeMillis())
     }
     var showDatePicker by remember { mutableStateOf(false) }
+
+    // Seed the start mileage from the highest end mileage seen so far,
+    // but only for new trips, only if the field is still empty, and only
+    // once the value has actually arrived from the database.
+    LaunchedEffect(existingTrip?.id, defaultStartMileage) {
+        if (existingTrip == null && startMileageText.isEmpty() && defaultStartMileage != null) {
+            startMileageText = defaultStartMileage.toString()
+        }
+    }
 
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
