@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "trips")
@@ -25,7 +26,7 @@ data class Trip(
 
 @Dao
 interface TripDao {
-    @Query("SELECT * FROM trips ORDER BY startMileage DESC")
+    @Query("SELECT * FROM trips ORDER BY date DESC")
     fun getAll(): Flow<List<Trip>>
 
     @Query("SELECT * FROM trips WHERE privateUse = :isPrivate ORDER BY date DESC")
@@ -33,6 +34,9 @@ interface TripDao {
 
     @Insert
     suspend fun insert(trip: Trip)
+
+    @Update
+    suspend fun update(trip: Trip)
 
     @Query("DELETE FROM trips WHERE id = :id")
     suspend fun deleteById(id: Long)
