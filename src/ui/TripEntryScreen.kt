@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
@@ -22,8 +23,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,8 +40,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nebulousprime26.mileage_tracker.data.Trip
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,15 +75,15 @@ fun TripEntryScreen(
     var notes by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.notes ?: "")
     }
-    var dateMillis by remember(existingTrip?.id) {
+    var dateTimeMillis by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.date ?: System.currentTimeMillis())
     }
-    var showDatePicker by remember { mutableStateOf(false) }
 
-    // Seed new trips from the last registered trip: the odometer continues
-    // from the highest end mileage, and the journey starts where the last
-    // one finished. Only for new trips, only when the field is still empty,
-    // and only once the values have actually arrived from the database.
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    // Holds the date between the two dialogs, before the time is chosen.
+    var pendingDateUtcMillis by remember { mutableStateOf<Long?>(null) }
+
     LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode) {
         if (existingTrip == null) {
             if (startMileageText.isEmpty() && defaultStartMileage != null) {
@@ -118,8 +123,8 @@ fun TripEntryScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            DateField(
-                dateMillis = dateMillis,
+            DateTimeField(
+                dateTimeMillis = dateTimeMillis,
                 onClick = { showDatePicker = true },
             )
 
@@ -196,7 +201,7 @@ fun TripEntryScreen(
                     onSave(
                         Trip(
                             id = tripId,
-                            date = dateMillis,
+                            date = dateTimeMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
                             startMileage = startMileage!!,
@@ -223,9 +228,25 @@ fun TripEntryScreen(
         }
     }
 
+    // ── Date picker ──────────────────────────────────────────────────
     if (showDatePicker) {
+        // Material 3's DatePicker works in UTC. Convert the local time to a
+        // UTC midnight representing the same calendar date, so the dialog
+        // highlights the correct day.
+        val initialUtcDateMillis = remember(dateTimeMillis) {
+            val local = Calendar.getInstance().apply { timeInMillis = dateTimeMillis }
+            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                clear()
+                set(
+                    local.get(Calendar.YEAR),
+                    local.get(Calendar.MONTH),
+                    local.get(Calendar.DAY_OF_MONTH),
+                )
+            }.timeInMillis
+        }
+
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dateMillis,
+            initialSelectedDateMillis = initialUtcDateMillis,
         )
 
         DatePickerDialog(
@@ -233,8 +254,9 @@ fun TripEntryScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        pickerState.selectedDateMillis?.let { dateMillis = it }
+                        pendingDateUtcMillis = pickerState.selectedDateMillis
                         showDatePicker = false
+                        if (pendingDateUtcMillis != null) showTimePicker = true
                     },
                 ) {
                     Text("OK")
@@ -249,22 +271,86 @@ fun TripEntryScreen(
             DatePicker(state = pickerState)
         }
     }
+
+    // ── Time picker ──────────────────────────────────────────────────
+    if (showTimePicker) {
+        val current = remember(dateTimeMillis) {
+            Calendar.getInstance().apply { timeInMillis = dateTimeMillis }
+        }
+        val timePickerState = rememberTimePickerState(
+            initialHour = current.get(Calendar.HOUR_OF_DAY),
+            initialMinute = current.get(Calendar.MINUTE),
+            is24Hour = true,
+        )
+
+        AlertDialog(
+            onDismissRequest = {
+                pendingDateUtcMillis = null
+                showTimePicker = false
+            },
+            title = { Text("Select time") },
+            text = {
+                Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val dateUtc = pendingDateUtcMillis ?: return@TextButton
+                        // Extract the calendar date from the UTC value the
+                        // DatePicker produced, then recombine with the chosen
+                        // hour/minute in the device's local timezone.
+                        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                            timeInMillis = dateUtc
+                        }
+                        val localCal = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                            set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                            set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                            set(Calendar.MINUTE, timePickerState.minute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        dateTimeMillis = localCal.timeInMillis
+                        pendingDateUtcMillis = null
+                        showTimePicker = false
+                    },
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingDateUtcMillis = null
+                        showTimePicker = false
+                    },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
 
 @Composable
-private fun DateField(
-    dateMillis: Long,
+private fun DateTimeField(
+    dateTimeMillis: Long,
     onClick: () -> Unit,
 ) {
-    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
-    val formatted = formatter.format(Date(dateMillis))
+    val formatter = remember {
+        SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault())
+    }
+    val formatted = formatter.format(Date(dateTimeMillis))
 
     Box {
         OutlinedTextField(
             value = formatted,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Date *") },
+            label = { Text("Date & time *") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
