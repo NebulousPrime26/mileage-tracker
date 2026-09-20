@@ -24,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -65,10 +66,33 @@ fun StatsScreen(
 
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
+    var cumulative by remember { mutableStateOf(false) }
 
     val privateColor = MaterialTheme.colorScheme.primary
     val businessColor = MaterialTheme.colorScheme.tertiary
     val totalColor = MaterialTheme.colorScheme.secondary
+
+    // When cumulative is on, replace each month's value with the running total
+    // up to and including that month. Accumulation happens after filtering, so
+    // changing the date range resets the running total from the new start.
+    val chartData = remember(monthlyStats, cumulative) {
+        if (!cumulative) {
+            monthlyStats
+        } else {
+            var runningPrivate = 0.0
+            var runningBusiness = 0.0
+            monthlyStats.map { m ->
+                runningPrivate += m.privateMileage
+                runningBusiness += m.businessMileage
+                MonthlyStats(
+                    year = m.year,
+                    month = m.month,
+                    privateMileage = runningPrivate,
+                    businessMileage = runningBusiness,
+                )
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -138,11 +162,31 @@ fun StatsScreen(
                 LegendItem("Total", totalColor)
             }
 
-            // ── Line chart ───────────────────────────────────────────
-            Text("Mileage over time", style = MaterialTheme.typography.titleMedium)
+            // ── Chart header + cumulative toggle ─────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (cumulative) "Cumulative mileage" else "Mileage over time",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Cumulative",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Switch(
+                        checked = cumulative,
+                        onCheckedChange = { cumulative = it },
+                    )
+                }
+            }
 
             MonthlyLineChart(
-                stats = monthlyStats,
+                stats = chartData,
                 privateColor = privateColor,
                 businessColor = businessColor,
                 totalColor = totalColor,
