@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -216,16 +218,23 @@ private fun TripRow(
                     text = dateText,
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Text(
-                    text = "${trip.distanceMileage} km",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                if (trip.privateUse) {
+
+                // Distance and private-use label share a line so the
+                // "Private use" tag reads as a modifier on the distance
+                // rather than as a separate row of information.
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Private use",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        text = "${trip.distanceMileage} km",
+                        style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (trip.privateUse) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Private use",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
             TextButton(onClick = onDelete) {
