@@ -37,6 +37,7 @@ fun TripsScreen(
     viewModel: TripViewModel,
     onAddTrip: () -> Unit,
     onEditTrip: (Trip) -> Unit,
+    onStats: () -> Unit,
     onBack: () -> Unit,
 ) {
     val trips by viewModel.trips.collectAsStateWithLifecycle()
@@ -48,6 +49,11 @@ fun TripsScreen(
                 navigationIcon = {
                     TextButton(onClick = onBack) {
                         Text("Back")
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onStats) {
+                        Text("Stats")
                     }
                 },
             )
@@ -104,7 +110,7 @@ private fun TripRow(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
+    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
     val dateText = formatter.format(Date(trip.date))
 
     Card(

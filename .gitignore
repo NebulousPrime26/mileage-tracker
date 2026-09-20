@@ -36,3 +36,6 @@ Thumbs.db
 *.log
 *.swp
 *~
+keystore.properties
+*.keystore
+*.jar
