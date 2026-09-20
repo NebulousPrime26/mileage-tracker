@@ -97,7 +97,37 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
-    // ── Mutations ────────────────────────────────────────────────────
+    val monthlyStats: StateFlow<List<MonthlyStats>> = combine(
+        dao.getAll(),
+        _filterStart,
+        _filterEnd,
+    ) { trips, start, end ->
+        trips
+            .filter { trip ->
+                (start == null || trip.date >= start) &&
+                (end == null || trip.date <= end)
+            }
+            .groupBy { trip ->
+                val cal = Calendar.getInstance().apply { timeInMillis = trip.date }
+                cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
+            }
+            .map { (key, monthTrips) ->
+                MonthlyStats(
+                    year = key.first,
+                    month = key.second,
+                    privateMileage = monthTrips.filter { it.privateUse }
+                        .sumOf { it.distanceMileage },
+                    businessMileage = monthTrips.filter { !it.privateUse }
+                        .sumOf { it.distanceMileage },
+                )
+            }
+            .sortedWith(compareBy({ it.year }, { it.month }))
+    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
 
     fun addTrip(trip: Trip) {
         viewModelScope.launch { dao.insert(trip) }
