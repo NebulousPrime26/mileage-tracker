@@ -3,6 +3,7 @@ package com.nebulousprime26.mileage_tracker.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,21 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+// ── Chart palette ────────────────────────────────────────────────────
+// Explicit colors from the Material palette so the three lines are
+// clearly distinguishable in hue (blue / orange / neutral), while still
+// feeling at home in a Material app. Each has a light and dark variant
+// so they stay readable against the theme's background.
+
+private val PrivateLight = Color(0xFF1976D2) // Material Blue 700
+private val PrivateDark  = Color(0xFF64B5F6) // Material Blue 300
+
+private val BusinessLight = Color(0xFFF57C00) // Material Orange 700
+private val BusinessDark  = Color(0xFFFFB74D) // Material Orange 300
+
+private val TotalLight = Color(0xFF424242) // Material Grey 800
+private val TotalDark  = Color(0xFFE0E0E0) // Material Grey 300
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
@@ -68,9 +84,10 @@ fun StatsScreen(
     var showEndPicker by remember { mutableStateOf(false) }
     var cumulative by remember { mutableStateOf(false) }
 
-    val privateColor = MaterialTheme.colorScheme.primary
-    val businessColor = MaterialTheme.colorScheme.tertiary
-    val totalColor = MaterialTheme.colorScheme.secondary
+    val isDark = isSystemInDarkTheme()
+    val privateColor = if (isDark) PrivateDark else PrivateLight
+    val businessColor = if (isDark) BusinessDark else BusinessLight
+    val totalColor = if (isDark) TotalDark else TotalLight
 
     val chartData = remember(monthlyStats, cumulative) {
         if (!cumulative) {
@@ -381,7 +398,7 @@ private fun MonthlyLineChart(
         }
 
         // ── Series ───────────────────────────────────────────────
-        fun drawSeries(values: List<Double>, color: Color) {
+        fun drawSeries(values: List<Double>, color: Color, strokeWidth: Float) {
             if (values.isEmpty()) return
 
             if (values.size == 1) {
@@ -399,7 +416,7 @@ private fun MonthlyLineChart(
                 val y = yFor(v)
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
-            drawPath(path, color = color, style = Stroke(width = 2.dp.toPx()))
+            drawPath(path, color = color, style = Stroke(width = strokeWidth))
 
             values.forEachIndexed { i, v ->
                 drawCircle(
@@ -410,10 +427,11 @@ private fun MonthlyLineChart(
             }
         }
 
-        // Draw total first so private/business overlay it.
-        drawSeries(stats.map { it.totalMileage }, totalColor)
-        drawSeries(stats.map { it.privateMileage }, privateColor)
-        drawSeries(stats.map { it.businessMileage }, businessColor)
+        // Total is drawn slightly thicker, since it's the aggregate.
+        // Draw it first so private/business overlay it.
+        drawSeries(stats.map { it.totalMileage }, totalColor, 3.dp.toPx())
+        drawSeries(stats.map { it.privateMileage }, privateColor, 2.dp.toPx())
+        drawSeries(stats.map { it.businessMileage }, businessColor, 2.dp.toPx())
     }
 }
 
