@@ -39,11 +39,15 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nebulousprime26.mileage_tracker.data.Trip
+import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+private val mileageFormatter = DecimalFormat("#,##0.##")
+private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +102,9 @@ fun TripEntryScreen(
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
 
+    // ── Validation ───────────────────────────────────────────────────
+
+    // Other trips that share a numeric range with this one.
     val conflictingTrip: Trip? = if (
         startMileage == null ||
         endMileage == null ||
@@ -112,12 +119,49 @@ fun TripEntryScreen(
         }
     }
 
+    // The earlier trip with the highest end reading — this sets the
+    // minimum allowed start mileage for the current trip.
+    val earlierTrip: Trip? = if (startMileage == null) {
+        null
+    } else {
+        existingTrips
+            .filter { it.id != existingTrip?.id && it.date < dateTimeMillis }
+            .maxByOrNull { it.endMileage }
+    }
+
+    // The later trip with the lowest start reading — this sets the
+    // maximum allowed end mileage for the current trip.
+    val laterTrip: Trip? = if (endMileage == null) {
+        null
+    } else {
+        existingTrips
+            .filter { it.id != existingTrip?.id && it.date > dateTimeMillis }
+            .minByOrNull { it.startMileage }
+    }
+
+    val chronologyError: String? = when {
+        startMileage == null || endMileage == null || endMileage < startMileage -> null
+
+        earlierTrip != null && startMileage < earlierTrip.endMileage ->
+            "Start mileage can't be below ${mileageFormatter.format(earlierTrip.endMileage)} km: " +
+                "the trip on ${shortDateFormatter.format(Date(earlierTrip.date))} " +
+                "already ended there."
+
+        laterTrip != null && endMileage > laterTrip.startMileage ->
+            "End mileage can't exceed ${mileageFormatter.format(laterTrip.startMileage)} km: " +
+                "the trip on ${shortDateFormatter.format(Date(laterTrip.date))} " +
+                "already starts there."
+
+        else -> null
+    }
+
     val canSave = startPostalCode.isNotBlank() &&
         endPostalCode.isNotBlank() &&
         startMileage != null &&
         endMileage != null &&
         endMileage >= startMileage &&
-        conflictingTrip == null
+        conflictingTrip == null &&
+        chronologyError == null
 
     Scaffold(
         topBar = {
@@ -170,7 +214,7 @@ fun TripEntryScreen(
                 onValueChange = { startMileageText = it },
                 label = { Text("Start mileage *") },
                 singleLine = true,
-                isError = conflictingTrip != null,
+                isError = conflictingTrip != null || chronologyError != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -180,7 +224,7 @@ fun TripEntryScreen(
                 onValueChange = { endMileageText = it },
                 label = { Text("End mileage *") },
                 singleLine = true,
-                isError = conflictingTrip != null,
+                isError = conflictingTrip != null || chronologyError != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -193,13 +237,18 @@ fun TripEntryScreen(
             }
 
             if (conflictingTrip != null) {
-                val formatter = remember {
-                    SimpleDateFormat("d MMM yyyy", Locale.getDefault())
-                }
                 Text(
                     text = "⚠ Mileage range overlaps an existing trip " +
-                        "(${conflictingTrip.startMileage}–${conflictingTrip.endMileage} km " +
-                        "on ${formatter.format(Date(conflictingTrip.date))})",
+                        "(${mileageFormatter.format(conflictingTrip.startMileage)}–" +
+                        "${mileageFormatter.format(conflictingTrip.endMileage)} km " +
+                        "on ${shortDateFormatter.format(Date(conflictingTrip.date))})",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            if (chronologyError != null) {
+                Text(
+                    text = "⚠ $chronologyError",
                     color = MaterialTheme.colorScheme.error,
                 )
             }
