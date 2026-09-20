@@ -7,19 +7,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,16 +32,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
@@ -165,7 +165,6 @@ private fun DeleteConfirmDialog(
         title = { Text("Delete trip?") },
         text = {
             Column {
-                // The trip itself, presented as a compact summary row.
                 TripSummary(trip = trip)
 
                 Spacer(Modifier.height(16.dp))
@@ -193,11 +192,6 @@ private fun DeleteConfirmDialog(
     )
 }
 
-/**
- * A compact summary of a trip: postal codes with an arrow, then the
- * date and distance on a second line. Used inside the delete dialog,
- * and could be reused anywhere a one-glance trip summary is needed.
- */
 @Composable
 private fun TripSummary(trip: Trip) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
@@ -236,7 +230,7 @@ private fun TripSummary(trip: Trip) {
             if (trip.privateUse) {
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Private use",
+                    text = "Private",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -252,9 +246,6 @@ private fun TripRow(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
-    val dateText = formatter.format(Date(trip.date))
-
     val sweep = remember { Animatable(0f) }
 
     LaunchedEffect(isSelected) {
