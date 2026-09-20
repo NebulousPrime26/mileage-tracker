@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -13,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.ui.LandingScreen
+import com.nebulousprime26.mileage_tracker.ui.MileageTheme
 import com.nebulousprime26.mileage_tracker.ui.SettingsScreen
 import com.nebulousprime26.mileage_tracker.ui.StatsScreen
 import com.nebulousprime26.mileage_tracker.ui.TripEntryScreen
@@ -25,8 +25,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                val vm: TripViewModel = viewModel()
+            val vm: TripViewModel = viewModel()
+            val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+
+            MileageTheme(themeMode = themeMode) {
                 var screen by remember { mutableStateOf(Screen.Landing) }
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
 

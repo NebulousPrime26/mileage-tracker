@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nebulousprime26.mileage_tracker.data.SettingsRepository
+import com.nebulousprime26.mileage_tracker.data.ThemeMode
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.data.TripDao
 import com.nebulousprime26.mileage_tracker.data.getDatabase
@@ -64,6 +65,18 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setFabOnRight(onRight: Boolean) {
         viewModelScope.launch { settingsRepo.setFabOnRight(onRight) }
+    }
+
+    /** Which theme to use: System, Light, or Dark. Defaults to System. */
+    val themeMode: StateFlow<ThemeMode> = settingsRepo.themeMode
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ThemeMode.SYSTEM,
+        )
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { settingsRepo.setThemeMode(mode) }
     }
 
     // ── Statistics filters ───────────────────────────────────────────
