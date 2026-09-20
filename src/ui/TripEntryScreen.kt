@@ -98,10 +98,6 @@ fun TripEntryScreen(
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
 
-    // A trip's [start, end] range must not intersect any other trip's range.
-    // Touching at a boundary (one trip ends where the next begins) is allowed —
-    // that's the normal chaining pattern for a mileage log. Overlap requires
-    // strict inequality on both sides.
     val conflictingTrip: Trip? = if (
         startMileage == null ||
         endMileage == null ||
@@ -210,7 +206,7 @@ fun TripEntryScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = privateUse, onCheckedChange = { privateUse = it })
-                Text("Private use")
+                Text("Private")
             }
 
             OutlinedTextField(
