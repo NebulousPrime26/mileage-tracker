@@ -1,8 +1,8 @@
 package com.nebulousprime26.mileage_tracker.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +35,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -51,7 +58,8 @@ fun StatsScreen(
     viewModel: TripViewModel,
     onBack: () -> Unit,
 ) {
-    val stats by viewModel.yearlyStats.collectAsStateWithLifecycle()
+    val yearlyStats by viewModel.yearlyStats.collectAsStateWithLifecycle()
+    val monthlyStats by viewModel.monthlyStats.collectAsStateWithLifecycle()
     val filterStart by viewModel.filterStart.collectAsStateWithLifecycle()
     val filterEnd by viewModel.filterEnd.collectAsStateWithLifecycle()
 
@@ -107,7 +115,7 @@ fun StatsScreen(
                 }
             }
 
-            if (stats.isEmpty()) {
+            if (monthlyStats.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -130,11 +138,11 @@ fun StatsScreen(
                 LegendItem("Total", totalColor)
             }
 
-            // ── Chart ────────────────────────────────────────────────
-            Text("Mileage per year", style = MaterialTheme.typography.titleMedium)
+            // ── Line chart ───────────────────────────────────────────
+            Text("Mileage over time", style = MaterialTheme.typography.titleMedium)
 
-            YearlyBarChart(
-                stats = stats,
+            MonthlyLineChart(
+                stats = monthlyStats,
                 privateColor = privateColor,
                 businessColor = businessColor,
                 totalColor = totalColor,
@@ -143,9 +151,9 @@ fun StatsScreen(
             HorizontalDivider()
 
             // ── Table ────────────────────────────────────────────────
-            Text("Breakdown", style = MaterialTheme.typography.titleMedium)
+            Text("Yearly breakdown", style = MaterialTheme.typography.titleMedium)
 
-            StatsTable(stats = stats)
+            StatsTable(stats = yearlyStats)
         }
     }
 
@@ -245,57 +253,129 @@ private fun LegendItem(label: String, color: Color) {
 }
 
 @Composable
-private fun YearlyBarChart(
-    stats: List<YearlyStats>,
+private fun MonthlyLineChart(
+    stats: List<MonthlyStats>,
     privateColor: Color,
     businessColor: Color,
     totalColor: Color,
 ) {
-    val maxValue = stats.maxOfOrNull { it.totalMileage }?.coerceAtLeast(1.0) ?: 1.0
-    val chartHeight = 180.dp
+    val textMeasurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
 
-    Row(
+    Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        verticalAlignment = Alignment.Bottom,
+            .height(240.dp),
     ) {
-        stats.forEach { year ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Bar(year.privateMileage, maxValue, chartHeight, privateColor)
-                    Bar(year.businessMileage, maxValue, chartHeight, businessColor)
-                    Bar(year.totalMileage, maxValue, chartHeight, totalColor)
-                }
-                Spacer(Modifier.height(4.dp))
-                Text("${year.year}", style = MaterialTheme.typography.labelMedium)
+        if (stats.isEmpty()) return@Canvas
+
+        val leftPad = 48.dp.toPx()
+        val rightPad = 12.dp.toPx()
+        val topPad = 12.dp.toPx()
+        val bottomPad = 40.dp.toPx()
+
+        val chartWidth = size.width - leftPad - rightPad
+        val chartHeight = size.height - topPad - bottomPad
+
+        val maxValue = stats.maxOfOrNull { it.totalMileage }
+            ?.coerceAtLeast(1.0) ?: 1.0
+
+        // ── Gridlines + Y-axis labels ────────────────────────────
+        val gridLines = 4
+        for (i in 0..gridLines) {
+            val fraction = i.toFloat() / gridLines
+            val y = topPad + chartHeight * (1 - fraction)
+            drawLine(
+                color = gridColor,
+                start = Offset(leftPad, y),
+                end = Offset(leftPad + chartWidth, y),
+                strokeWidth = 1.dp.toPx(),
+            )
+            val layout = textMeasurer.measure(
+                text = formatAxisValue(maxValue * fraction),
+                style = TextStyle(fontSize = 10.sp, color = labelColor),
+            )
+            drawText(
+                textLayoutResult = layout,
+                topLeft = Offset(
+                    leftPad - layout.size.width - 6.dp.toPx(),
+                    y - layout.size.height / 2f,
+                ),
+            )
+        }
+
+        // ── Coordinate helpers ───────────────────────────────────
+        val n = stats.size
+        val stepX = if (n > 1) chartWidth / (n - 1) else 0f
+
+        fun xFor(i: Int): Float = leftPad + stepX * i
+        fun yFor(value: Double): Float =
+            topPad + chartHeight *
+                (1f - (value / maxValue).toFloat().coerceIn(0f, 1f))
+
+        // ── X-axis labels (skip some if crowded) ─────────────────
+        val maxLabels = 6
+        val labelStep = maxOf(1, (n + maxLabels - 1) / maxLabels)
+        stats.forEachIndexed { i, month ->
+            if (i % labelStep == 0 || i == n - 1) {
+                val layout = textMeasurer.measure(
+                    text = month.label,
+                    style = TextStyle(fontSize = 10.sp, color = labelColor),
+                )
+                drawText(
+                    textLayoutResult = layout,
+                    topLeft = Offset(
+                        xFor(i) - layout.size.width / 2f,
+                        topPad + chartHeight + 8.dp.toPx(),
+                    ),
+                )
             }
         }
+
+        // ── Series ───────────────────────────────────────────────
+        fun drawSeries(values: List<Double>, color: Color) {
+            if (values.isEmpty()) return
+
+            if (values.size == 1) {
+                drawCircle(
+                    color = color,
+                    radius = 3.dp.toPx(),
+                    center = Offset(xFor(0), yFor(values[0])),
+                )
+                return
+            }
+
+            val path = Path()
+            values.forEachIndexed { i, v ->
+                val x = xFor(i)
+                val y = yFor(v)
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(path, color = color, style = Stroke(width = 2.dp.toPx()))
+
+            values.forEachIndexed { i, v ->
+                drawCircle(
+                    color = color,
+                    radius = 2.5.dp.toPx(),
+                    center = Offset(xFor(i), yFor(v)),
+                )
+            }
+        }
+
+        // Draw total first so private/business overlay it.
+        drawSeries(stats.map { it.totalMileage }, totalColor)
+        drawSeries(stats.map { it.privateMileage }, privateColor)
+        drawSeries(stats.map { it.businessMileage }, businessColor)
     }
 }
 
-@Composable
-private fun Bar(
-    value: Double,
-    max: Double,
-    maxHeight: androidx.compose.ui.unit.Dp,
-    color: Color,
-) {
-    val fraction = (value / max).toFloat().coerceIn(0f, 1f)
-    val height = maxHeight * fraction
-    Box(
-        modifier = Modifier
-            .width(14.dp)
-            .height(height.coerceAtLeast(1.dp))
-            .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)),
-    )
+/** Compact label for the y-axis: 0, 500, 1k, 2k, … */
+private fun formatAxisValue(value: Double): String = when {
+    value <= 0.0 -> "0"
+    value >= 1000 -> "${(value / 1000).toInt()}k"
+    value >= 100 -> value.toInt().toString()
+    else -> String.format(Locale.ROOT, "%.0f", value)
 }
 
 @Composable
@@ -354,7 +434,6 @@ private fun androidx.compose.foundation.layout.RowScope.TableCell(
 
 // ── Date helpers ─────────────────────────────────────────────────────
 
-/** Converts a local epoch-millis value to the UTC midnight the picker expects. */
 private fun toUtcDateMillis(localMillis: Long): Long {
     val local = Calendar.getInstance().apply { timeInMillis = localMillis }
     return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
@@ -367,7 +446,6 @@ private fun toUtcDateMillis(localMillis: Long): Long {
     }.timeInMillis
 }
 
-/** UTC date from the picker → local midnight (00:00:00.000) of that day. */
 private fun startOfDayLocal(utcDateMillis: Long): Long {
     val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
         timeInMillis = utcDateMillis
@@ -383,7 +461,6 @@ private fun startOfDayLocal(utcDateMillis: Long): Long {
     }.timeInMillis
 }
 
-/** UTC date from the picker → local end of day (23:59:59.999) of that day. */
 private fun endOfDayLocal(utcDateMillis: Long): Long {
     val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
         timeInMillis = utcDateMillis
