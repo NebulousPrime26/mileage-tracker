@@ -53,7 +53,6 @@ fun TripsScreen(
     onAddTrip: () -> Unit,
     onEditTrip: (Trip) -> Unit,
     onStats: () -> Unit,
-    onSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
     val trips by viewModel.trips.collectAsStateWithLifecycle()
@@ -83,9 +82,6 @@ fun TripsScreen(
                 actions = {
                     TextButton(onClick = onStats) {
                         Text("Stats")
-                    }
-                    TextButton(onClick = onSettings) {
-                        Text("Settings")
                     }
                 },
             )
