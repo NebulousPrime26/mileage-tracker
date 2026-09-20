@@ -3,6 +3,7 @@ package com.nebulousprime26.mileage_tracker.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nebulousprime26.mileage_tracker.data.SettingsRepository
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.data.TripDao
 import com.nebulousprime26.mileage_tracker.data.getDatabase
@@ -17,6 +18,7 @@ import java.util.Calendar
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     private val dao: TripDao = getDatabase(app).tripDao()
+    private val settingsRepo = SettingsRepository(app)
 
     /** All trips, newest first. Re-emits whenever the database changes. */
     val trips: StateFlow<List<Trip>> = dao.getAll()
@@ -49,6 +51,20 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = null,
         )
+
+    // ── User settings ────────────────────────────────────────────────
+
+    /** True = "Add trip" FAB on the right side. False = left. Defaults to right. */
+    val fabOnRight: StateFlow<Boolean> = settingsRepo.fabOnRight
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setFabOnRight(onRight: Boolean) {
+        viewModelScope.launch { settingsRepo.setFabOnRight(onRight) }
+    }
 
     // ── Statistics filters ───────────────────────────────────────────
 
@@ -97,6 +113,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
+    /** Mileage split into private/business/total, aggregated per calendar month. */
     val monthlyStats: StateFlow<List<MonthlyStats>> = combine(
         dao.getAll(),
         _filterStart,
@@ -128,6 +145,8 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    // ── Mutations ────────────────────────────────────────────────────
 
     fun addTrip(trip: Trip) {
         viewModelScope.launch { dao.insert(trip) }
