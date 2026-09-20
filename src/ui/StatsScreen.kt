@@ -72,9 +72,6 @@ fun StatsScreen(
     val businessColor = MaterialTheme.colorScheme.tertiary
     val totalColor = MaterialTheme.colorScheme.secondary
 
-    // When cumulative is on, replace each month's value with the running total
-    // up to and including that month. Accumulation happens after filtering, so
-    // changing the date range resets the running total from the new start.
     val chartData = remember(monthlyStats, cumulative) {
         if (!cumulative) {
             monthlyStats
@@ -155,13 +152,6 @@ fun StatsScreen(
                 return@Column
             }
 
-            // ── Legend ───────────────────────────────────────────────
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                LegendItem("Private", privateColor)
-                LegendItem("Business", businessColor)
-                LegendItem("Total", totalColor)
-            }
-
             // ── Chart header + cumulative toggle ─────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -185,12 +175,25 @@ fun StatsScreen(
                 }
             }
 
+            // ── Line chart ───────────────────────────────────────────
             MonthlyLineChart(
                 stats = chartData,
                 privateColor = privateColor,
                 businessColor = businessColor,
                 totalColor = totalColor,
             )
+
+            // ── Legend (below the chart) ─────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    LegendItem("Private", privateColor)
+                    LegendItem("Business", businessColor)
+                    LegendItem("Total", totalColor)
+                }
+            }
 
             HorizontalDivider()
 
