@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
                             screen = Screen.Trips
                         }
                         Screen.Settings -> {
-                            screen = Screen.Trips
+                            screen = Screen.Landing
                         }
                         Screen.Trips -> {
                             screen = Screen.Landing
@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                 when (screen) {
                     Screen.Landing -> LandingScreen(
                         onContinue = { screen = Screen.Trips },
+                        onSettings = { screen = Screen.Settings },
                         onImport = { /* TODO */ },
                         onExport = { /* TODO */ },
                     )
@@ -71,7 +72,6 @@ class MainActivity : ComponentActivity() {
                             screen = Screen.Entry
                         },
                         onStats = { screen = Screen.Stats },
-                        onSettings = { screen = Screen.Settings },
                         onBack = { screen = Screen.Landing },
                     )
 
@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
 
                     Screen.Settings -> SettingsScreen(
                         viewModel = vm,
-                        onBack = { screen = Screen.Trips },
+                        onBack = { screen = Screen.Landing },
                     )
 
                     Screen.Entry -> TripEntryScreen(
