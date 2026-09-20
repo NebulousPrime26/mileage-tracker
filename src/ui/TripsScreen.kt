@@ -13,13 +13,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -210,10 +214,32 @@ private fun TripRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${trip.startPostalCode} → ${trip.endPostalCode}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                // The arrow is an Icon rather than the "→" character.
+                // Icon glyphs have a symmetric bounding box, so
+                // Alignment.CenterVertically actually centres them — the
+                // text character sits on the math axis and always reads
+                // low against the all-caps postal codes.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = trip.startPostalCode,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp)
+                            .size(18.dp),
+                    )
+                    Text(
+                        text = trip.endPostalCode,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+
                 Text(
                     text = dateText,
                     style = MaterialTheme.typography.bodySmall,
