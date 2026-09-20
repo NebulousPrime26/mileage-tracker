@@ -7,18 +7,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -30,16 +32,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
@@ -64,12 +66,9 @@ fun TripsScreen(
     val trips by viewModel.trips.collectAsStateWithLifecycle()
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
 
-    // The trip currently playing its "selected" sweep. Non-null means a
-    // sweep is running and navigation is pending.
     var selectedTrip by remember { mutableStateOf<Trip?>(null) }
+    var tripPendingDelete by remember { mutableStateOf<Trip?>(null) }
 
-    // Wait for the sweep, then navigate. The delay matches the animation
-    // duration so they finish together.
     LaunchedEffect(selectedTrip) {
         val trip = selectedTrip ?: return@LaunchedEffect
         delay(SWEEP_DURATION_MS.toLong())
@@ -133,12 +132,114 @@ fun TripsScreen(
                         trip = trip,
                         isSelected = selectedTrip?.id == trip.id,
                         onClick = {
-                            // Ignore taps while a sweep is already running.
                             if (selectedTrip == null) selectedTrip = trip
                         },
-                        onDelete = { viewModel.deleteTrip(trip.id) },
+                        onDelete = { tripPendingDelete = trip },
                     )
                 }
+            }
+        }
+    }
+
+    // ── Delete confirmation ──────────────────────────────────────────
+    tripPendingDelete?.let { trip ->
+        DeleteConfirmDialog(
+            trip = trip,
+            onConfirm = {
+                viewModel.deleteTrip(trip.id)
+                tripPendingDelete = null
+            },
+            onDismiss = { tripPendingDelete = null },
+        )
+    }
+}
+
+@Composable
+private fun DeleteConfirmDialog(
+    trip: Trip,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete trip?") },
+        text = {
+            Column {
+                // The trip itself, presented as a compact summary row.
+                TripSummary(trip = trip)
+
+                Spacer(Modifier.height(16.dp))
+
+                Text(
+                    text = "This cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = "Delete",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+/**
+ * A compact summary of a trip: postal codes with an arrow, then the
+ * date and distance on a second line. Used inside the delete dialog,
+ * and could be reused anywhere a one-glance trip summary is needed.
+ */
+@Composable
+private fun TripSummary(trip: Trip) {
+    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
+    val dateText = formatter.format(Date(trip.date))
+
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = trip.startPostalCode,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .size(18.dp),
+            )
+            Text(
+                text = trip.endPostalCode,
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        Text(
+            text = dateText,
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "${trip.distanceMileage} km",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (trip.privateUse) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Private use",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -154,7 +255,6 @@ private fun TripRow(
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
     val dateText = formatter.format(Date(trip.date))
 
-    // 0 = sweep hasn't started, 1 = sweep fully crossed the card.
     val sweep = remember { Animatable(0f) }
 
     LaunchedEffect(isSelected) {
@@ -179,17 +279,12 @@ private fun TripRow(
             .drawWithContent {
                 drawContent()
 
-                // The light sweep. Only draws while this row is selected.
                 val progress = sweep.value
                 if (progress > 0f) {
                     val bandWidth = size.width * 0.6f
                     val centerX =
                         -bandWidth + (size.width + 2f * bandWidth) * progress
 
-                    // A soft white band fading in and out at its edges.
-                    // White reads as a highlight in both light and dark
-                    // themes, unlike a tinted color which would fight the
-                    // card's surface color.
                     drawRect(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
@@ -213,55 +308,8 @@ private fun TripRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                // The arrow is an Icon rather than the "→" character.
-                // Icon glyphs have a symmetric bounding box, so
-                // Alignment.CenterVertically actually centres them — the
-                // text character sits on the math axis and always reads
-                // low against the all-caps postal codes.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = trip.startPostalCode,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp)
-                            .size(18.dp),
-                    )
-                    Text(
-                        text = trip.endPostalCode,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-
-                Text(
-                    text = dateText,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-
-                // Distance and private-use label share a line so the
-                // "Private use" tag reads as a modifier on the distance
-                // rather than as a separate row of information.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${trip.distanceMileage} km",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    if (trip.privateUse) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Private use",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
+            Box(modifier = Modifier.weight(1f)) {
+                TripSummary(trip = trip)
             }
             TextButton(onClick = onDelete) {
                 Text("Delete")
