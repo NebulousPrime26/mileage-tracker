@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -52,9 +53,11 @@ fun TripsScreen(
     onAddTrip: () -> Unit,
     onEditTrip: (Trip) -> Unit,
     onStats: () -> Unit,
+    onSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
     val trips by viewModel.trips.collectAsStateWithLifecycle()
+    val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
 
     // The trip currently playing its "selected" sweep. Non-null means a
     // sweep is running and navigation is pending.
@@ -81,9 +84,14 @@ fun TripsScreen(
                     TextButton(onClick = onStats) {
                         Text("Stats")
                     }
+                    TextButton(onClick = onSettings) {
+                        Text("Settings")
+                    }
                 },
             )
         },
+        floatingActionButtonPosition =
+            if (fabOnRight) FabPosition.End else FabPosition.Start,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddTrip,
