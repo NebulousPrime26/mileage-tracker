@@ -50,8 +50,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Length of the highlight sweep. Kept short so it registers as feedback
-// without becoming a wait the user notices.
 private const val SWEEP_DURATION_MS = 220
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,23 +78,17 @@ fun TripsScreen(
             TopAppBar(
                 title = { Text("Trips") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Back")
-                    }
+                    TextButton(onClick = onBack) { Text("Back") }
                 },
                 actions = {
-                    TextButton(onClick = onStats) {
-                        Text("Stats")
-                    }
+                    TextButton(onClick = onStats) { Text("Stats") }
                 },
             )
         },
         floatingActionButtonPosition =
             if (fabOnRight) FabPosition.End else FabPosition.Start,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddTrip,
-            ) {
+            ExtendedFloatingActionButton(onClick = onAddTrip) {
                 Text("Add trip")
             }
         },
@@ -141,7 +133,6 @@ fun TripsScreen(
         }
     }
 
-    // ── Delete confirmation ──────────────────────────────────────────
     tripPendingDelete?.let { trip ->
         DeleteConfirmDialog(
             trip = trip,
@@ -166,9 +157,7 @@ private fun DeleteConfirmDialog(
         text = {
             Column {
                 TripSummary(trip = trip)
-
                 Spacer(Modifier.height(16.dp))
-
                 Text(
                     text = "This cannot be undone.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -185,9 +174,7 @@ private fun DeleteConfirmDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }
@@ -197,10 +184,15 @@ private fun TripSummary(trip: Trip) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
     val dateText = formatter.format(Date(trip.date))
 
+    // Empty fields on a draft would otherwise show as " → " with nothing
+    // between them; the em dash reads as "not filled in yet".
+    val startText = trip.startPostalCode.ifBlank { "—" }
+    val endText = trip.endPostalCode.ifBlank { "—" }
+
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = trip.startPostalCode,
+                text = startText,
                 style = MaterialTheme.typography.titleMedium,
             )
             Icon(
@@ -212,9 +204,18 @@ private fun TripSummary(trip: Trip) {
                     .size(18.dp),
             )
             Text(
-                text = trip.endPostalCode,
+                text = endText,
                 style = MaterialTheme.typography.titleMedium,
             )
+
+            if (trip.isDraft) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Draft",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
         }
 
         Text(
