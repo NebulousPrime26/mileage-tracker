@@ -1,7 +1,7 @@
 package com.nebulousprime26.mileage_tracker.data
 
-import androidx.room.Entity
 import androidx.room.Dao
+import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -10,14 +10,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "trips")
 data class Trip(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long,
     val date: Long,
-    val startPostalCode: String = "",
-    val endPostalCode: String = "",
+    val startPostalCode: String,
+    val endPostalCode: String,
     val startMileage: Double,
     val endMileage: Double,
-    val privateUse: Boolean = false,
-    val notes: String = "",
+    val privateUse: Boolean,
+    val notes: String,
+    val isDraft: Boolean,
 ) {
     val distanceMileage: Double
         get() = endMileage - startMileage
@@ -25,16 +26,17 @@ data class Trip(
 
 @Dao
 interface TripDao {
+
     @Query("SELECT * FROM trips ORDER BY date DESC")
     fun getAll(): Flow<List<Trip>>
 
     @Query("SELECT * FROM trips WHERE privateUse = :isPrivate ORDER BY date DESC")
     fun getByPrivateUse(isPrivate: Boolean): Flow<List<Trip>>
 
-    @Query("SELECT MAX(endMileage) FROM trips")
+    @Query("SELECT MAX(endMileage) FROM trips WHERE isDraft = 0")
     fun getMaxEndMileage(): Flow<Double?>
-    
-    @Query("SELECT endPostalCode FROM trips ORDER BY date DESC LIMIT 1")
+
+    @Query("SELECT endPostalCode FROM trips WHERE isDraft = 0 ORDER BY date DESC, id DESC LIMIT 1")
     fun getLastEndPostalCode(): Flow<String?>
 
     @Insert

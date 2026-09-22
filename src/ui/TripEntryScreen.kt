@@ -68,11 +68,15 @@ fun TripEntryScreen(
     var endPostalCode by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.endPostalCode ?: "")
     }
+    // A draft may have 0.0 mileage, which means "not entered yet" — show
+    // it as an empty field rather than a misleading "0.0".
     var startMileageText by remember(existingTrip?.id) {
-        mutableStateOf(existingTrip?.startMileage?.toString() ?: "")
+        val v = existingTrip?.startMileage
+        mutableStateOf(if (v == null || v == 0.0) "" else v.toString())
     }
     var endMileageText by remember(existingTrip?.id) {
-        mutableStateOf(existingTrip?.endMileage?.toString() ?: "")
+        val v = existingTrip?.endMileage
+        mutableStateOf(if (v == null || v == 0.0) "" else v.toString())
     }
     var privateUse by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.privateUse ?: false)
@@ -104,7 +108,6 @@ fun TripEntryScreen(
 
     // ── Validation ───────────────────────────────────────────────────
 
-    // Other trips that share a numeric range with this one.
     val conflictingTrip: Trip? = if (
         startMileage == null ||
         endMileage == null ||
@@ -119,8 +122,6 @@ fun TripEntryScreen(
         }
     }
 
-    // The earlier trip with the highest end reading — this sets the
-    // minimum allowed start mileage for the current trip.
     val earlierTrip: Trip? = if (startMileage == null) {
         null
     } else {
@@ -129,8 +130,6 @@ fun TripEntryScreen(
             .maxByOrNull { it.endMileage }
     }
 
-    // The later trip with the lowest start reading — this sets the
-    // maximum allowed end mileage for the current trip.
     val laterTrip: Trip? = if (endMileage == null) {
         null
     } else {
@@ -163,6 +162,14 @@ fun TripEntryScreen(
         conflictingTrip == null &&
         chronologyError == null
 
+    // A draft needs at least one field filled in so we don't save blank rows.
+    val hasDraftContent = startPostalCode.isNotBlank() ||
+        endPostalCode.isNotBlank() ||
+        startMileageText.isNotBlank() ||
+        endMileageText.isNotBlank() ||
+        notes.isNotBlank()
+    val canSaveDraft = hasDraftContent
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(if (isEditing) "Edit trip" else "New trip") })
@@ -177,7 +184,7 @@ fun TripEntryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "* Required field",
+                text = "* Required field. Fields can be left blank if saving as a draft.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -268,12 +275,17 @@ fun TripEntryScreen(
 
             if (!canSave) {
                 Text(
-                    text = "Fill in all required fields to save.",
+                    text = if (hasDraftContent) {
+                        "Fill in all required fields to save, or save as a draft."
+                    } else {
+                        "Fill in the fields above to save."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
+            // ── Save (complete) ──────────────────────────────────────
             Button(
                 onClick = {
                     onSave(
@@ -286,6 +298,7 @@ fun TripEntryScreen(
                             endMileage = endMileage!!,
                             privateUse = privateUse,
                             notes = notes,
+                            isDraft = false,
                         )
                     )
                 },
@@ -294,10 +307,43 @@ fun TripEntryScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             ) {
-                Text(if (isEditing) "Save changes" else "Save trip")
+                Text(
+                    when {
+                        !isEditing -> "Save trip"
+                        existingTrip.isDraft -> "Complete trip"
+                        else -> "Save changes"
+                    }
+                )
             }
 
+            // ── Save as draft (incomplete) ───────────────────────────
             OutlinedButton(
+                onClick = {
+                    onSave(
+                        Trip(
+                            id = tripId,
+                            date = dateTimeMillis,
+                            startPostalCode = startPostalCode,
+                            endPostalCode = endPostalCode,
+                            startMileage = startMileage ?: 0.0,
+                            endMileage = endMileage ?: 0.0,
+                            privateUse = privateUse,
+                            notes = notes,
+                            isDraft = true,
+                        )
+                    )
+                },
+                enabled = canSaveDraft,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    if (existingTrip?.isDraft == true) "Update draft"
+                    else "Save as draft"
+                )
+            }
+
+            // ── Cancel ───────────────────────────────────────────────
+            TextButton(
                 onClick = onCancel,
                 modifier = Modifier.fillMaxWidth(),
             ) {
