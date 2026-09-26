@@ -38,6 +38,7 @@ class SettingsRepository(private val context: Context) {
     private val postalFirstKey = booleanPreferencesKey("postal_first")
     private val draftLeftKey = booleanPreferencesKey("draft_left")
     private val roundTripAssumptionKey = booleanPreferencesKey("round_trip_assumption")
+    private val autoFillEndTimeKey = booleanPreferencesKey("auto_fill_end_time")
 
     /** True = FAB on the right side. False = FAB on the left. Defaults to right. */
     val fabOnRight: Flow<Boolean> = context.settingsDataStore.data
@@ -89,6 +90,19 @@ class SettingsRepository(private val context: Context) {
     suspend fun setRoundTripAssumption(value: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[roundTripAssumptionKey] = value
+        }
+    }
+
+    /**
+     * True = set the end time to the current time when the end mileage
+     * is first filled in on a new trip. Defaults to true.
+     */
+    val autoFillEndTime: Flow<Boolean> = context.settingsDataStore.data
+        .map { prefs -> prefs[autoFillEndTimeKey] ?: true }
+
+    suspend fun setAutoFillEndTime(value: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[autoFillEndTimeKey] = value
         }
     }
 }

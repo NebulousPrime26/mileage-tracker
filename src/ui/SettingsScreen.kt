@@ -37,6 +37,7 @@ fun SettingsScreen(
     val postalFirst by viewModel.postalFirst.collectAsStateWithLifecycle()
     val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
     val roundTripAssumption by viewModel.roundTripAssumption.collectAsStateWithLifecycle()
+    val autoFillEndTime by viewModel.autoFillEndTime.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -108,6 +109,13 @@ fun SettingsScreen(
                 explanation = "When adding a trip, pre-fill the end postal code with where the previous trip started.",
                 checked = roundTripAssumption,
                 onToggle = { viewModel.setRoundTripAssumption(it) },
+            )
+
+            ToggleSetting(
+                title = "Auto-fill end time",
+                explanation = "When adding a trip, set the end time to now as soon as the end mileage is entered.",
+                checked = autoFillEndTime,
+                onToggle = { viewModel.setAutoFillEndTime(it) },
             )
 
             HorizontalDivider()
