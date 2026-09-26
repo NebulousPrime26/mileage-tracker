@@ -69,6 +69,7 @@ fun TripEntryScreen(
     defaultLicensePlate: String? = null,
     postalFirst: Boolean = true,
     draftLeft: Boolean = true,
+    autoFillEndTime: Boolean = true,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -129,13 +130,19 @@ fun TripEntryScreen(
         }
     }
 
-    // Bump end time when end mileage first becomes populated (new trips only).
+    // When adding a new trip, filling in the end mileage marks the moment
+    // the trip ended, so the end time is bumped to now. The transition is
+    // detected on the blank → non-blank edge, and the whole effect is
+    // skipped for edits and when the user has disabled the auto-fill in
+    // Settings, so an existing trip's saved end time is never overwritten.
     var lastEndMileageWasBlank by remember(existingTrip?.id) {
         mutableStateOf(endMileageText.isBlank())
     }
-    LaunchedEffect(endMileageText, existingTrip?.id) {
+    LaunchedEffect(endMileageText, existingTrip?.id, autoFillEndTime) {
         val nowBlank = endMileageText.isBlank()
-        if (existingTrip == null && lastEndMileageWasBlank && !nowBlank) {
+        if (existingTrip == null && autoFillEndTime &&
+            lastEndMileageWasBlank && !nowBlank
+        ) {
             endDateMillis = System.currentTimeMillis()
         }
         lastEndMileageWasBlank = nowBlank

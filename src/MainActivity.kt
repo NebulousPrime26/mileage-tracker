@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
                 val postalFirst by vm.postalFirst.collectAsStateWithLifecycle()
                 val draftLeft by vm.draftLeft.collectAsStateWithLifecycle()
                 val roundTripAssumption by vm.roundTripAssumption.collectAsStateWithLifecycle()
+                val autoFillEndTime by vm.autoFillEndTime.collectAsStateWithLifecycle()
 
                 BackHandler(enabled = screen != Screen.Landing) {
                     when (screen) {
@@ -100,9 +101,6 @@ class MainActivity : ComponentActivity() {
                         existingTrips = trips,
                         defaultStartMileage = maxEndMileage,
                         defaultStartPostalCode = lastEndPostalCode,
-                        // Only pre-fill the end postal as a return leg when
-                        // the user hasn't opted out of the round trip
-                        // assumption in Settings.
                         defaultEndPostalCode = if (roundTripAssumption) {
                             lastStartPostalCode
                         } else {
@@ -111,6 +109,7 @@ class MainActivity : ComponentActivity() {
                         defaultLicensePlate = lastLicensePlate,
                         postalFirst = postalFirst,
                         draftLeft = draftLeft,
+                        autoFillEndTime = autoFillEndTime,
                         onSave = { trip ->
                             if (editingTrip == null) {
                                 vm.addTrip(trip)

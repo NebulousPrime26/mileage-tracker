@@ -120,6 +120,17 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setRoundTripAssumption(value) }
     }
 
+    val autoFillEndTime: StateFlow<Boolean> = settingsRepo.autoFillEndTime
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setAutoFillEndTime(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setAutoFillEndTime(value) }
+    }
+
     // ── Statistics filters ───────────────────────────────────────────
 
     private val _filterStart = MutableStateFlow<Long?>(null)
