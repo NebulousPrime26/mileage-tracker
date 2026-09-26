@@ -34,10 +34,6 @@ fun SettingsScreen(
 ) {
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-    val postalFirst by viewModel.postalFirst.collectAsStateWithLifecycle()
-    val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
-    val roundTripAssumption by viewModel.roundTripAssumption.collectAsStateWithLifecycle()
-    val autoFillEndTime by viewModel.autoFillEndTime.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -69,152 +65,40 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // ── Positions ────────────────────────────────────────────
+            // ── Layout ───────────────────────────────────────────────
             Text(
-                text = "Positions",
+                text = "Layout",
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            PositionSetting(
-                title = "Add Trip button",
-                explanation = "Where the floating button sits on the Trips screen.",
-                isRight = fabOnRight,
-                onToggle = { viewModel.setFabOnRight(it) },
-            )
-
-            PositionSetting(
-                title = "Postal Code group",
-                explanation = "Which side of the trip entry form the postal codes appear on, relative to mileage.",
-                isRight = !postalFirst,
-                onToggle = { viewModel.setPostalFirst(!it) },
-            )
-
-            PositionSetting(
-                title = "Save Draft button",
-                explanation = "Which side of the trip entry form the draft button appears on, relative to save.",
-                isRight = !draftLeft,
-                onToggle = { viewModel.setDraftLeft(!it) },
-            )
-
-            HorizontalDivider()
-
-            // ── Behaviour ────────────────────────────────────────────
-            Text(
-                text = "Behaviour",
-                style = MaterialTheme.typography.titleMedium,
-            )
-
-            ToggleSetting(
-                title = "Assume round trips",
-                explanation = "When adding a trip, pre-fill the end postal code with where the previous trip started.",
-                checked = roundTripAssumption,
-                onToggle = { viewModel.setRoundTripAssumption(it) },
-            )
-
-            ToggleSetting(
-                title = "Auto-fill end time",
-                explanation = "When adding a trip, set the end time to now as soon as the end mileage is entered.",
-                checked = autoFillEndTime,
-                onToggle = { viewModel.setAutoFillEndTime(it) },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Add trip button on the right",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = if (fabOnRight) {
+                            "Currently on the right"
+                        } else {
+                            "Currently on the left"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = fabOnRight,
+                    onCheckedChange = { viewModel.setFabOnRight(it) },
+                )
+            }
 
             HorizontalDivider()
         }
-    }
-}
-
-/**
- * A single row showing "Title    Left [Switch] Right" with the toggle
- * cluster right-aligned, and an explanation beneath. The active side's
- * label is drawn in the primary colour so the state reads without
- * having to interpret the switch itself.
- */
-@Composable
-private fun PositionSetting(
-    title: String,
-    explanation: String,
-    isRight: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "Left",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isRight) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-            )
-            Switch(
-                checked = isRight,
-                onCheckedChange = onToggle,
-                modifier = Modifier.padding(horizontal = 8.dp),
-            )
-            Text(
-                text = "Right",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isRight) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-        }
-        Text(
-            text = explanation,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/**
- * A simple on/off setting: the title on the left, the switch on the
- * right, and an explanation line below.
- */
-@Composable
-private fun ToggleSetting(
-    title: String,
-    explanation: String,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = checked,
-                onCheckedChange = onToggle,
-            )
-        }
-        Text(
-            text = explanation,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -223,6 +107,9 @@ private fun ThemeModeSelector(
     selected: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
 ) {
+    // A radio group is the clearest pattern for a small set of mutually
+    // exclusive options, and it's universally available in Material 3
+    // without needing the segmented-button APIs from newer releases.
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,7 +135,7 @@ private fun ThemeModeSelector(
             ) {
                 RadioButton(
                     selected = mode == selected,
-                    onClick = null,
+                    onClick = null, // the row handles the click
                 )
                 Text(
                     text = label,
