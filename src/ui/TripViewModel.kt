@@ -3,6 +3,8 @@ package com.nebulousprime26.mileage_tracker.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nebulousprime26.mileage_tracker.data.SettingsRepository
+import com.nebulousprime26.mileage_tracker.data.ThemeMode
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.data.TripDao
 import com.nebulousprime26.mileage_tracker.data.getDatabase
@@ -17,8 +19,8 @@ import java.util.Calendar
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     private val dao: TripDao = getDatabase(app).tripDao()
+    private val settingsRepo = SettingsRepository(app)
 
-    /** All trips, newest first. Re-emits whenever the database changes. */
     val trips: StateFlow<List<Trip>> = dao.getAll()
         .stateIn(
             scope = viewModelScope,
@@ -26,7 +28,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
-    /** Private-use trips only. */
     val privateTrips: StateFlow<List<Trip>> = dao.getByPrivateUse(true)
         .stateIn(
             scope = viewModelScope,
@@ -34,7 +35,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
-    /** Highest end mileage across all trips, or null when there are none. */
     val maxEndMileage: StateFlow<Double?> = dao.getMaxEndMileage()
         .stateIn(
             scope = viewModelScope,
@@ -42,13 +42,50 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = null,
         )
 
-    /** End postal code of the most recent trip, or null when there are none. */
     val lastEndPostalCode: StateFlow<String?> = dao.getLastEndPostalCode()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = null,
         )
+
+    val lastStartPostalCode: StateFlow<String?> = dao.getLastStartPostalCode()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    val lastLicensePlate: StateFlow<String?> = dao.getLastLicensePlate()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    // ── User settings ────────────────────────────────────────────────
+
+    val fabOnRight: StateFlow<Boolean> = settingsRepo.fabOnRight
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setFabOnRight(onRight: Boolean) {
+        viewModelScope.launch { settingsRepo.setFabOnRight(onRight) }
+    }
+
+    val themeMode: StateFlow<ThemeMode> = settingsRepo.themeMode
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ThemeMode.SYSTEM,
+        )
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { settingsRepo.setThemeMode(mode) }
+    }
 
     // ── Statistics filters ───────────────────────────────────────────
 
@@ -65,7 +102,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         _filterEnd.value = null
     }
 
-    /** Mileage split into private/business/total, aggregated per calendar year. */
     val yearlyStats: StateFlow<List<YearlyStats>> = combine(
         dao.getAll(),
         _filterStart,
@@ -73,11 +109,11 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     ) { trips, start, end ->
         trips
             .filter { trip ->
-                (start == null || trip.date >= start) &&
-                (end == null || trip.date <= end)
+                (start == null || trip.startDate >= start) &&
+                (end == null || trip.startDate <= end)
             }
             .groupBy { trip ->
-                Calendar.getInstance().apply { timeInMillis = trip.date }
+                Calendar.getInstance().apply { timeInMillis = trip.startDate }
                     .get(Calendar.YEAR)
             }
             .map { (year, yearTrips) ->
@@ -104,11 +140,11 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     ) { trips, start, end ->
         trips
             .filter { trip ->
-                (start == null || trip.date >= start) &&
-                (end == null || trip.date <= end)
+                (start == null || trip.startDate >= start) &&
+                (end == null || trip.startDate <= end)
             }
             .groupBy { trip ->
-                val cal = Calendar.getInstance().apply { timeInMillis = trip.date }
+                val cal = Calendar.getInstance().apply { timeInMillis = trip.startDate }
                 cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
             }
             .map { (key, monthTrips) ->
@@ -128,6 +164,8 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    // ── Mutations ────────────────────────────────────────────────────
 
     fun addTrip(trip: Trip) {
         viewModelScope.launch { dao.insert(trip) }

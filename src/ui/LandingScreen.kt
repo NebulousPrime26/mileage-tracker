@@ -2,9 +2,12 @@ package com.nebulousprime26.mileage_tracker.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -18,6 +21,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun LandingScreen(
     onContinue: () -> Unit = {},
+    onSettings: () -> Unit = {},
     onImport: () -> Unit = {},
     onExport: () -> Unit = {},
 ) {
@@ -37,6 +41,7 @@ fun LandingScreen(
                 style = MaterialTheme.typography.headlineLarge,
             )
 
+            // Primary action
             Button(
                 onClick = onContinue,
                 modifier = Modifier
@@ -46,22 +51,35 @@ fun LandingScreen(
                 Text("Continue")
             }
 
+            // Settings — directly beneath Continue
             OutlinedButton(
-                onClick = onImport,
+                onClick = onSettings,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp),
             ) {
-                Text("Import")
+                Text("Settings")
             }
 
-            OutlinedButton(
-                onClick = onExport,
+            // Import / Export — side by side
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp),
             ) {
-                Text("Export")
+                OutlinedButton(
+                    onClick = onImport,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Import")
+                }
+                Spacer(Modifier.width(12.dp))
+                OutlinedButton(
+                    onClick = onExport,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Export")
+                }
             }
         }
     }
