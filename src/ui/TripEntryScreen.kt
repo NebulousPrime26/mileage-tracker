@@ -65,6 +65,7 @@ fun TripEntryScreen(
     existingTrips: List<Trip> = emptyList(),
     defaultStartMileage: Double? = null,
     defaultStartPostalCode: String? = null,
+    defaultEndPostalCode: String? = null,
     defaultLicensePlate: String? = null,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
@@ -102,13 +103,27 @@ fun TripEntryScreen(
         mutableStateOf(existingTrip?.endDate ?: System.currentTimeMillis())
     }
 
-    LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode, defaultLicensePlate) {
+    // Seed new trips from the last completed trip: the odometer continues
+    // from the highest end mileage, the journey starts where the last one
+    // finished, and — assuming a round trip — ends where the last one
+    // started. Only for new trips, only when the field is still empty,
+    // and only once the values have actually arrived from the database.
+    LaunchedEffect(
+        existingTrip?.id,
+        defaultStartMileage,
+        defaultStartPostalCode,
+        defaultEndPostalCode,
+        defaultLicensePlate,
+    ) {
         if (existingTrip == null) {
             if (startMileageText.isEmpty() && defaultStartMileage != null) {
                 startMileageText = defaultStartMileage.toString()
             }
             if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
                 startPostalCode = defaultStartPostalCode.uppercase(Locale.ROOT)
+            }
+            if (endPostalCode.isEmpty() && !defaultEndPostalCode.isNullOrBlank()) {
+                endPostalCode = defaultEndPostalCode.uppercase(Locale.ROOT)
             }
             if (licensePlate.isEmpty() && !defaultLicensePlate.isNullOrBlank()) {
                 licensePlate = defaultLicensePlate.uppercase(Locale.ROOT)

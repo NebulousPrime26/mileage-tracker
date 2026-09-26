@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
                 val trips by vm.trips.collectAsStateWithLifecycle()
                 val maxEndMileage by vm.maxEndMileage.collectAsStateWithLifecycle()
                 val lastEndPostalCode by vm.lastEndPostalCode.collectAsStateWithLifecycle()
+                val lastStartPostalCode by vm.lastStartPostalCode.collectAsStateWithLifecycle()
                 val lastLicensePlate by vm.lastLicensePlate.collectAsStateWithLifecycle()
 
                 BackHandler(enabled = screen != Screen.Landing) {
@@ -93,6 +94,7 @@ class MainActivity : ComponentActivity() {
                         existingTrips = trips,
                         defaultStartMileage = maxEndMileage,
                         defaultStartPostalCode = lastEndPostalCode,
+                        defaultEndPostalCode = lastStartPostalCode,
                         defaultLicensePlate = lastLicensePlate,
                         onSave = { trip ->
                             if (editingTrip == null) {

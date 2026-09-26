@@ -49,6 +49,13 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = null,
         )
 
+    val lastStartPostalCode: StateFlow<String?> = dao.getLastStartPostalCode()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
     val lastLicensePlate: StateFlow<String?> = dao.getLastLicensePlate()
         .stateIn(
             scope = viewModelScope,
