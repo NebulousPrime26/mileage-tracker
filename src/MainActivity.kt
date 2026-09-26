@@ -28,10 +28,6 @@ class MainActivity : ComponentActivity() {
             val vm: TripViewModel = viewModel()
             val themeMode by vm.themeMode.collectAsStateWithLifecycle()
 
-            // Read the version once from the installed APK's manifest.
-            // PackageManager reflects whatever the build wrote there, so
-            // this stays in sync with module.yaml (or the manifest, if
-            // versionName is set there instead).
             val versionName = remember { readVersionName() }
 
             MileageTheme(themeMode = themeMode) {
@@ -43,6 +39,8 @@ class MainActivity : ComponentActivity() {
                 val lastEndPostalCode by vm.lastEndPostalCode.collectAsStateWithLifecycle()
                 val lastStartPostalCode by vm.lastStartPostalCode.collectAsStateWithLifecycle()
                 val lastLicensePlate by vm.lastLicensePlate.collectAsStateWithLifecycle()
+                val postalFirst by vm.postalFirst.collectAsStateWithLifecycle()
+                val draftLeft by vm.draftLeft.collectAsStateWithLifecycle()
 
                 BackHandler(enabled = screen != Screen.Landing) {
                     when (screen) {
@@ -103,6 +101,8 @@ class MainActivity : ComponentActivity() {
                         defaultStartPostalCode = lastEndPostalCode,
                         defaultEndPostalCode = lastStartPostalCode,
                         defaultLicensePlate = lastLicensePlate,
+                        postalFirst = postalFirst,
+                        draftLeft = draftLeft,
                         onSave = { trip ->
                             if (editingTrip == null) {
                                 vm.addTrip(trip)
@@ -122,11 +122,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Reads the app's versionName from its own manifest. Returns
-     * "unknown" if the manifest doesn't declare one or the lookup fails,
-     * so the UI always has something to show.
-     */
     private fun readVersionName(): String {
         return try {
             @Suppress("DEPRECATION")

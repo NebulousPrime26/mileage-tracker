@@ -34,6 +34,8 @@ fun SettingsScreen(
 ) {
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val postalFirst by viewModel.postalFirst.collectAsStateWithLifecycle()
+    val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -65,40 +67,85 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // ── Layout ───────────────────────────────────────────────
+            // ── Trip list layout ─────────────────────────────────────
             Text(
-                text = "Layout",
+                text = "Trip list",
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Add trip button on the right",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = if (fabOnRight) {
-                            "Currently on the right"
-                        } else {
-                            "Currently on the left"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = fabOnRight,
-                    onCheckedChange = { viewModel.setFabOnRight(it) },
-                )
-            }
+            SettingSwitch(
+                title = "Add trip button on the right",
+                subtitle = if (fabOnRight) {
+                    "Currently on the right"
+                } else {
+                    "Currently on the left"
+                },
+                checked = fabOnRight,
+                onCheckedChange = { viewModel.setFabOnRight(it) },
+            )
+
+            HorizontalDivider()
+
+            // ── Trip entry layout ────────────────────────────────────
+            Text(
+                text = "Trip entry",
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            SettingSwitch(
+                title = "Postal codes before mileage",
+                subtitle = if (postalFirst) {
+                    "Postal on the left, mileage on the right"
+                } else {
+                    "Mileage on the left, postal on the right"
+                },
+                checked = postalFirst,
+                onCheckedChange = { viewModel.setPostalFirst(it) },
+            )
+
+            SettingSwitch(
+                title = "Save as draft on the left",
+                subtitle = if (draftLeft) {
+                    "Draft on the left, save on the right"
+                } else {
+                    "Save on the left, draft on the right"
+                },
+                checked = draftLeft,
+                onCheckedChange = { viewModel.setDraftLeft(it) },
+            )
 
             HorizontalDivider()
         }
+    }
+}
+
+@Composable
+private fun SettingSwitch(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
 }
 
@@ -107,9 +154,6 @@ private fun ThemeModeSelector(
     selected: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
 ) {
-    // A radio group is the clearest pattern for a small set of mutually
-    // exclusive options, and it's universally available in Material 3
-    // without needing the segmented-button APIs from newer releases.
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -135,7 +179,7 @@ private fun ThemeModeSelector(
             ) {
                 RadioButton(
                     selected = mode == selected,
-                    onClick = null, // the row handles the click
+                    onClick = null,
                 )
                 Text(
                     text = label,
