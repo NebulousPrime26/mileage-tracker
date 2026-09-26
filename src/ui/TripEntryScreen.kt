@@ -58,6 +58,16 @@ import java.util.TimeZone
 private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
 
+/**
+ * Normalises a postal code fragment: uppercase, and strip whitespace
+ * unless the user has opted in to allowing spaces via Settings. Used
+ * directly in the onValueChange callbacks for the postal fields.
+ */
+private fun sanitizePostalCode(input: String, allowSpaces: Boolean): String {
+    val withoutSpaces = if (allowSpaces) input else input.filterNot { it.isWhitespace() }
+    return withoutSpaces.uppercase(Locale.ROOT)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripEntryScreen(
@@ -67,6 +77,10 @@ fun TripEntryScreen(
     defaultStartPostalCode: String? = null,
     defaultEndPostalCode: String? = null,
     defaultLicensePlate: String? = null,
+    postalFirst: Boolean = true,
+    draftLeft: Boolean = true,
+    autoFillEndTime: Boolean = true,
+    allowSpacesInPostal: Boolean = false,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -120,10 +134,10 @@ fun TripEntryScreen(
                 startMileageText = defaultStartMileage.toString()
             }
             if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
-                startPostalCode = defaultStartPostalCode.uppercase(Locale.ROOT)
+                startPostalCode = sanitizePostalCode(defaultStartPostalCode, allowSpacesInPostal)
             }
             if (endPostalCode.isEmpty() && !defaultEndPostalCode.isNullOrBlank()) {
-                endPostalCode = defaultEndPostalCode.uppercase(Locale.ROOT)
+                endPostalCode = sanitizePostalCode(defaultEndPostalCode, allowSpacesInPostal)
             }
             if (licensePlate.isEmpty() && !defaultLicensePlate.isNullOrBlank()) {
                 licensePlate = defaultLicensePlate.uppercase(Locale.ROOT)
@@ -220,6 +234,123 @@ fun TripEntryScreen(
         endMileageText.isNotBlank() ||
         notes.isNotBlank()
     val canSaveDraft = hasDraftContent
+
+    // Local composable lambdas so the postal/mileage groups can be
+    // reordered based on the user's layout preference without
+    // duplicating all of the field wiring.
+    val postalGroup: @Composable (Modifier) -> Unit = { modifier ->
+        VerticalFieldGroup(modifier = modifier) {
+            OutlinedTextField(
+                value = startPostalCode,
+                onValueChange = {
+                    startPostalCode = sanitizePostalCode(it, allowSpacesInPostal)
+                },
+                label = { Text("Start postal") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = endPostalCode,
+                onValueChange = {
+                    endPostalCode = sanitizePostalCode(it, allowSpacesInPostal)
+                },
+                label = { Text("End postal") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    val mileageGroup: @Composable (Modifier) -> Unit = { modifier ->
+        VerticalFieldGroup(modifier = modifier) {
+            OutlinedTextField(
+                value = startMileageText,
+                onValueChange = { startMileageText = it },
+                label = { Text("Start mileage") },
+                singleLine = true,
+                isError = conflictingTrip != null || chronologyError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = endMileageText,
+                onValueChange = { endMileageText = it },
+                label = { Text("End mileage") },
+                singleLine = true,
+                isError = conflictingTrip != null || chronologyError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    // Same trick for the two action buttons.
+    val draftButton: @Composable (Modifier) -> Unit = { modifier ->
+        OutlinedButton(
+            onClick = {
+                onSave(
+                    Trip(
+                        id = tripId,
+                        startDate = startDateMillis,
+                        endDate = endDateMillis,
+                        startPostalCode = startPostalCode,
+                        endPostalCode = endPostalCode,
+                        licensePlate = licensePlate,
+                        startMileage = startMileage ?: 0.0,
+                        endMileage = endMileage ?: 0.0,
+                        privateUse = privateUse,
+                        notes = notes,
+                        isDraft = true,
+                    )
+                )
+            },
+            enabled = canSaveDraft,
+            modifier = modifier,
+        ) {
+            Text(
+                if (existingTrip?.isDraft == true) "Update draft"
+                else "Save as draft"
+            )
+        }
+    }
+
+    val saveButton: @Composable (Modifier) -> Unit = { modifier ->
+        Button(
+            onClick = {
+                onSave(
+                    Trip(
+                        id = tripId,
+                        startDate = startDateMillis,
+                        endDate = endDateMillis,
+                        startPostalCode = startPostalCode,
+                        endPostalCode = endPostalCode,
+                        licensePlate = licensePlate,
+                        startMileage = startMileage!!,
+                        endMileage = endMileage!!,
+                        privateUse = privateUse,
+                        notes = notes,
+                        isDraft = false,
+                    )
+                )
+            },
+            enabled = canSave,
+            modifier = modifier,
+        ) {
+            Text(
+                when {
+                    !isEditing -> "Save trip"
+                    existingTrip.isDraft -> "Complete trip"
+                    else -> "Save changes"
+                }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
