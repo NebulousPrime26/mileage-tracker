@@ -11,23 +11,23 @@ import kotlinx.coroutines.flow.Flow
 @Entity(tableName = "trips")
 data class Trip(
     @PrimaryKey(autoGenerate = true) val id: Long,
-    /** When the trip began, as local epoch millis. */
     val startDate: Long,
-    /** When the trip ended, as local epoch millis. */
     val endDate: Long,
     val startPostalCode: String,
     val endPostalCode: String,
-    /** Optional vehicle identifier. Empty means "not specified". */
     val licensePlate: String,
     val startMileage: Double,
     val endMileage: Double,
     val privateUse: Boolean,
     val notes: String,
-    /** True when the trip was saved without completing all required fields. */
     val isDraft: Boolean,
 ) {
     val distanceMileage: Double
         get() = endMileage - startMileage
+
+    /** Elapsed time of the trip in milliseconds. */
+    val durationMillis: Long
+        get() = (endDate - startDate).coerceAtLeast(0L)
 }
 
 @Dao

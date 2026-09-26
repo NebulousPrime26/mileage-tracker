@@ -172,12 +172,16 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                     .get(Calendar.YEAR)
             }
             .map { (year, yearTrips) ->
+                val privateTrips = yearTrips.filter { it.privateUse }
+                val businessTrips = yearTrips.filter { !it.privateUse }
                 YearlyStats(
                     year = year,
-                    privateMileage = yearTrips.filter { it.privateUse }
-                        .sumOf { it.distanceMileage },
-                    businessMileage = yearTrips.filter { !it.privateUse }
-                        .sumOf { it.distanceMileage },
+                    privateMileage = privateTrips.sumOf { it.distanceMileage },
+                    businessMileage = businessTrips.sumOf { it.distanceMileage },
+                    privateDurationMillis = privateTrips.sumOf { it.durationMillis },
+                    businessDurationMillis = businessTrips.sumOf { it.durationMillis },
+                    privateTripCount = privateTrips.size,
+                    businessTripCount = businessTrips.size,
                 )
             }
             .sortedBy { it.year }
@@ -203,13 +207,17 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
             }
             .map { (key, monthTrips) ->
+                val privateTrips = monthTrips.filter { it.privateUse }
+                val businessTrips = monthTrips.filter { !it.privateUse }
                 MonthlyStats(
                     year = key.first,
                     month = key.second,
-                    privateMileage = monthTrips.filter { it.privateUse }
-                        .sumOf { it.distanceMileage },
-                    businessMileage = monthTrips.filter { !it.privateUse }
-                        .sumOf { it.distanceMileage },
+                    privateMileage = privateTrips.sumOf { it.distanceMileage },
+                    businessMileage = businessTrips.sumOf { it.distanceMileage },
+                    privateDurationMillis = privateTrips.sumOf { it.durationMillis },
+                    businessDurationMillis = businessTrips.sumOf { it.durationMillis },
+                    privateTripCount = privateTrips.size,
+                    businessTripCount = businessTrips.size,
                 )
             }
             .sortedWith(compareBy({ it.year }, { it.month }))
