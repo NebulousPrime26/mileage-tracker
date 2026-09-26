@@ -87,6 +87,50 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setThemeMode(mode) }
     }
 
+    val postalFirst: StateFlow<Boolean> = settingsRepo.postalFirst
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setPostalFirst(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setPostalFirst(value) }
+    }
+
+    val draftLeft: StateFlow<Boolean> = settingsRepo.draftLeft
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setDraftLeft(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setDraftLeft(value) }
+    }
+
+    val roundTripAssumption: StateFlow<Boolean> = settingsRepo.roundTripAssumption
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setRoundTripAssumption(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setRoundTripAssumption(value) }
+    }
+
+    val autoFillEndTime: StateFlow<Boolean> = settingsRepo.autoFillEndTime
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setAutoFillEndTime(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setAutoFillEndTime(value) }
+    }
+
     // ── Statistics filters ───────────────────────────────────────────
 
     private val _filterStart = MutableStateFlow<Long?>(null)
