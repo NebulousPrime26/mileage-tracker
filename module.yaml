@@ -20,6 +20,7 @@ settings:
     versionName: "0.0.1"
     signing:
       enabled: true
+      propertiesFile: ./.keystores/keystore.properties
   compose: enabled
   junit: junit-4
   kotlin:

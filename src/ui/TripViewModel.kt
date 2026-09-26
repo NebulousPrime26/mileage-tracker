@@ -1,25 +1,56 @@
 package com.nebulousprime26.mileage_tracker.ui
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nebulousprime26.mileage_tracker.data.SettingsRepository
 import com.nebulousprime26.mileage_tracker.data.ThemeMode
 import com.nebulousprime26.mileage_tracker.data.Trip
+import com.nebulousprime26.mileage_tracker.data.TripBackup
+import com.nebulousprime26.mileage_tracker.data.TripCrypto
 import com.nebulousprime26.mileage_tracker.data.TripDao
 import com.nebulousprime26.mileage_tracker.data.getDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
+    /**
+     * UI state for the export/import flow. Owned by the ViewModel so
+     * it survives configuration changes, and read by the landing
+     * screen to show the appropriate dialog.
+     */
+    sealed interface BackupState {
+        /** No backup operation in progress. */
+        object Idle : BackupState
+
+        /** An export or import is running. */
+        object Working : BackupState
+
+        /** Export finished; the key must be shown to the user exactly once. */
+        data class Exported(val key: String, val filename: String) : BackupState
+
+        /** The user picked a file and needs to supply the key. */
+        data class ImportAwaitingKey(val uri: Uri) : BackupState
+
+        /** Import succeeded, with the number of trips inserted. */
+        data class Imported(val count: Int) : BackupState
+
+        /** Something went wrong in either direction. */
+        data class Failed(val message: String) : BackupState
+    }
+
     private val dao: TripDao = getDatabase(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
+
+    // ── Trip data ────────────────────────────────────────────────────
 
     val trips: StateFlow<List<Trip>> = dao.getAll()
         .stateIn(
@@ -227,6 +258,87 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    // ── Backup (export / import) ─────────────────────────────────────
+
+    private val _backupState = MutableStateFlow<BackupState>(BackupState.Idle)
+    val backupState: StateFlow<BackupState> = _backupState
+
+    /**
+     * Encrypts all trips and writes them to Downloads. On success,
+     * exposes the encryption key via [backupState] so the UI can show
+     * it to the user exactly once.
+     */
+    fun exportTrips() {
+        viewModelScope.launch {
+            _backupState.value = BackupState.Working
+            try {
+                val allTrips = dao.getAll().first()
+                val json = TripBackup.serializeTrips(allTrips)
+                val key = TripCrypto.generateKey()
+                val encrypted = TripCrypto.encrypt(json, key)
+                val filename = TripBackup.defaultFilename()
+                TripBackup.writeToDownloads(
+                    context = getApplication(),
+                    filename = filename,
+                    bytes = encrypted,
+                )
+                _backupState.value = BackupState.Exported(
+                    key = TripCrypto.formatKey(key),
+                    filename = filename,
+                )
+            } catch (t: Throwable) {
+                _backupState.value = BackupState.Failed(
+                    t.message ?: "Export failed",
+                )
+            }
+        }
+    }
+
+    /**
+     * Called when the user has picked a file to import. Records the URI
+     * so the UI can prompt for the key.
+     */
+    fun beginImport(uri: Uri) {
+        _backupState.value = BackupState.ImportAwaitingKey(uri)
+    }
+
+    /**
+     * Decrypts and inserts the selected backup. Each trip is inserted
+     * as a new row with an auto-generated ID.
+     */
+    fun importTrips(uri: Uri, keyInput: String) {
+        viewModelScope.launch {
+            _backupState.value = BackupState.Working
+            try {
+                val key = TripCrypto.parseKey(keyInput)
+                    ?: throw IllegalArgumentException(
+                        "The key isn't a valid 64-character hex string."
+                    )
+                val bytes = getApplication<Application>().contentResolver
+                    .openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw IllegalStateException(
+                        "Could not read the selected file."
+                    )
+                val json = TripCrypto.decrypt(bytes, key)
+                    ?: throw IllegalStateException(
+                        "Could not decrypt — the key is wrong or the file is damaged."
+                    )
+                val importedTrips = TripBackup.deserializeTrips(json)
+                importedTrips.forEach { dao.insert(it) }
+                _backupState.value = BackupState.Imported(importedTrips.size)
+            } catch (t: Throwable) {
+                _backupState.value = BackupState.Failed(
+                    t.message ?: "Import failed",
+                )
+            }
+        }
+    }
+
+    /** Clears any pending export/import dialog state. */
+    fun dismissBackupState() {
+        _backupState.value = BackupState.Idle
+    }
 
     // ── Mutations ────────────────────────────────────────────────────
 

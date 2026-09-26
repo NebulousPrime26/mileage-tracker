@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
             val vm: TripViewModel = viewModel()
             val themeMode by vm.themeMode.collectAsStateWithLifecycle()
 
+            // Read the version once from the installed APK's manifest.
             val versionName = remember { readVersionName() }
 
             MileageTheme(themeMode = themeMode) {
@@ -67,10 +68,9 @@ class MainActivity : ComponentActivity() {
                 when (screen) {
                     Screen.Landing -> LandingScreen(
                         versionName = versionName,
+                        viewModel = vm,
                         onContinue = { screen = Screen.Trips },
                         onSettings = { screen = Screen.Settings },
-                        onImport = { /* TODO */ },
-                        onExport = { /* TODO */ },
                     )
 
                     Screen.Trips -> TripsScreen(
@@ -102,6 +102,9 @@ class MainActivity : ComponentActivity() {
                         existingTrips = trips,
                         defaultStartMileage = maxEndMileage,
                         defaultStartPostalCode = lastEndPostalCode,
+                        // Only pre-fill the end postal as a return leg when
+                        // the user hasn't opted out of the round trip
+                        // assumption in Settings.
                         defaultEndPostalCode = if (roundTripAssumption) {
                             lastStartPostalCode
                         } else {
@@ -131,6 +134,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Reads the app's versionName from its own manifest. Returns
+     * "unknown" if the manifest doesn't declare one or the lookup fails,
+     * so the UI always has something to show.
+     */
     private fun readVersionName(): String {
         return try {
             @Suppress("DEPRECATION")
