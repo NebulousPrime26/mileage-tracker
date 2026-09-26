@@ -3,7 +3,6 @@ package com.nebulousprime26.mileage_tracker.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -79,36 +78,35 @@ fun StatsScreen(
 
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
-    var cumulative by remember { mutableStateOf(false) }
     var metric by remember { mutableStateOf(StatsMetric.MILEAGE) }
+
+    // One toggle per metric, so switching between them doesn't lose
+    // the other's state.
+    var cumulativeMileage by remember { mutableStateOf(false) }
+    var averageDuration by remember { mutableStateOf(false) }
 
     val isDark = isSystemInDarkTheme()
     val privateColor = if (isDark) PrivateDark else PrivateLight
     val businessColor = if (isDark) BusinessDark else BusinessLight
     val totalColor = if (isDark) TotalDark else TotalLight
 
-    val chartData = remember(monthlyStats, cumulative) {
-        if (!cumulative) {
-            monthlyStats
-        } else {
-            var runningPrivateMileage = 0.0
-            var runningBusinessMileage = 0.0
-            var runningPrivateDuration = 0L
-            var runningBusinessDuration = 0L
+    // Running totals are only meaningful for mileage. Duration has no
+    // cumulative mode — the chart either shows the month's total time
+    // or the average time per trip.
+    val chartData = remember(monthlyStats, cumulativeMileage, metric) {
+        if (metric == StatsMetric.MILEAGE && cumulativeMileage) {
+            var runningPrivate = 0.0
+            var runningBusiness = 0.0
             monthlyStats.map { m ->
-                runningPrivateMileage += m.privateMileage
-                runningBusinessMileage += m.businessMileage
-                runningPrivateDuration += m.privateDurationMillis
-                runningBusinessDuration += m.businessDurationMillis
-                MonthlyStats(
-                    year = m.year,
-                    month = m.month,
-                    privateMileage = runningPrivateMileage,
-                    businessMileage = runningBusinessMileage,
-                    privateDurationMillis = runningPrivateDuration,
-                    businessDurationMillis = runningBusinessDuration,
+                runningPrivate += m.privateMileage
+                runningBusiness += m.businessMileage
+                m.copy(
+                    privateMileage = runningPrivate,
+                    businessMileage = runningBusiness,
                 )
             }
+        } else {
+            monthlyStats
         }
     }
 
@@ -194,7 +192,8 @@ fun StatsScreen(
                 LegendItem("Total", totalColor)
             }
 
-            // ── Chart header + cumulative toggle ─────────────────────
+            // ── Chart header + metric-specific toggle ────────────────
+            val isAverageMode = metric == StatsMetric.DURATION && averageDuration
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -202,22 +201,29 @@ fun StatsScreen(
             ) {
                 Text(
                     text = when {
-                        cumulative && metric == StatsMetric.MILEAGE -> "Cumulative mileage"
-                        cumulative -> "Cumulative travel time"
-                        metric == StatsMetric.MILEAGE -> "Mileage over time"
-                        else -> "Travel time over time"
+                        metric == StatsMetric.MILEAGE && cumulativeMileage ->
+                            "Cumulative mileage"
+                        metric == StatsMetric.MILEAGE ->
+                            "Mileage over time"
+                        averageDuration ->
+                            "Average travel time"
+                        else ->
+                            "Travel time over time"
                     },
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Cumulative",
+                        text = if (metric == StatsMetric.MILEAGE) "Cumulative" else "Average",
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Spacer(Modifier.width(8.dp))
                     Switch(
-                        checked = cumulative,
-                        onCheckedChange = { cumulative = it },
+                        checked = if (metric == StatsMetric.MILEAGE) cumulativeMileage else averageDuration,
+                        onCheckedChange = {
+                            if (metric == StatsMetric.MILEAGE) cumulativeMileage = it
+                            else averageDuration = it
+                        },
                     )
                 }
             }
@@ -226,6 +232,7 @@ fun StatsScreen(
             MonthlyLineChart(
                 stats = chartData,
                 metric = metric,
+                showAverage = isAverageMode,
                 privateColor = privateColor,
                 businessColor = businessColor,
                 totalColor = totalColor,
@@ -248,7 +255,11 @@ fun StatsScreen(
             // ── Table ────────────────────────────────────────────────
             Text("Yearly breakdown", style = MaterialTheme.typography.titleMedium)
 
-            StatsTable(stats = yearlyStats, metric = metric)
+            StatsTable(
+                stats = yearlyStats,
+                metric = metric,
+                showAverage = isAverageMode,
+            )
         }
     }
 
@@ -351,6 +362,7 @@ private fun LegendItem(label: String, color: Color) {
 private fun MonthlyLineChart(
     stats: List<MonthlyStats>,
     metric: StatsMetric,
+    showAverage: Boolean,
     privateColor: Color,
     businessColor: Color,
     totalColor: Color,
@@ -359,19 +371,29 @@ private fun MonthlyLineChart(
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
 
-    // Values are normalised to a single unit so the chart doesn't need
-    // to know which metric is displayed: km for mileage, hours for time.
-    val privateValues = stats.map {
-        if (metric == StatsMetric.MILEAGE) it.privateMileage
-        else it.privateDurationMillis / MILLIS_PER_HOUR
+    // All values are normalised to a single unit: km for mileage,
+    // hours for time. That way the drawing code below doesn't need to
+    // know which metric produced them.
+    val privateValues = stats.map { m ->
+        when {
+            metric == StatsMetric.MILEAGE -> m.privateMileage
+            showAverage -> m.privateAverageDurationMillis / MILLIS_PER_HOUR
+            else -> m.privateDurationMillis / MILLIS_PER_HOUR
+        }
     }
-    val businessValues = stats.map {
-        if (metric == StatsMetric.MILEAGE) it.businessMileage
-        else it.businessDurationMillis / MILLIS_PER_HOUR
+    val businessValues = stats.map { m ->
+        when {
+            metric == StatsMetric.MILEAGE -> m.businessMileage
+            showAverage -> m.businessAverageDurationMillis / MILLIS_PER_HOUR
+            else -> m.businessDurationMillis / MILLIS_PER_HOUR
+        }
     }
-    val totalValues = stats.map {
-        if (metric == StatsMetric.MILEAGE) it.totalMileage
-        else it.totalDurationMillis / MILLIS_PER_HOUR
+    val totalValues = stats.map { m ->
+        when {
+            metric == StatsMetric.MILEAGE -> m.totalMileage
+            showAverage -> m.totalAverageDurationMillis / MILLIS_PER_HOUR
+            else -> m.totalDurationMillis / MILLIS_PER_HOUR
+        }
     }
 
     Canvas(
@@ -508,8 +530,59 @@ private fun formatHours(millis: Long): String =
 private fun StatsTable(
     stats: List<YearlyStats>,
     metric: StatsMetric,
+    showAverage: Boolean,
 ) {
     val formatter = remember { java.text.DecimalFormat("#,##0.0") }
+
+    // Per-row cell formatters, chosen by metric and mode.
+    val privateText: (YearlyStats) -> String = when {
+        metric == StatsMetric.MILEAGE -> { y -> formatter.format(y.privateMileage) }
+        showAverage -> { y -> formatHours(y.privateAverageDurationMillis) }
+        else -> { y -> formatHours(y.privateDurationMillis) }
+    }
+    val businessText: (YearlyStats) -> String = when {
+        metric == StatsMetric.MILEAGE -> { y -> formatter.format(y.businessMileage) }
+        showAverage -> { y -> formatHours(y.businessAverageDurationMillis) }
+        else -> { y -> formatHours(y.businessDurationMillis) }
+    }
+    val totalText: (YearlyStats) -> String = when {
+        metric == StatsMetric.MILEAGE -> { y -> formatter.format(y.totalMileage) }
+        showAverage -> { y -> formatHours(y.totalAverageDurationMillis) }
+        else -> { y -> formatHours(y.totalDurationMillis) }
+    }
+
+    // Footer totals: sums for mileage and time, or the overall average
+    // duration per trip when in average mode.
+    val totalPrivateMileage = stats.sumOf { it.privateMileage }
+    val totalBusinessMileage = stats.sumOf { it.businessMileage }
+    val totalAllMileage = stats.sumOf { it.totalMileage }
+
+    val totalPrivateDuration = stats.sumOf { it.privateDurationMillis }
+    val totalBusinessDuration = stats.sumOf { it.businessDurationMillis }
+    val totalAllDuration = stats.sumOf { it.totalDurationMillis }
+
+    val totalPrivateTrips = stats.sumOf { it.privateTripCount }
+    val totalBusinessTrips = stats.sumOf { it.businessTripCount }
+    val totalAllTrips = totalPrivateTrips + totalBusinessTrips
+
+    val footerPrivate: String = when {
+        metric == StatsMetric.MILEAGE -> formatter.format(totalPrivateMileage)
+        showAverage -> if (totalPrivateTrips > 0)
+            formatHours(totalPrivateDuration / totalPrivateTrips) else "—"
+        else -> formatHours(totalPrivateDuration)
+    }
+    val footerBusiness: String = when {
+        metric == StatsMetric.MILEAGE -> formatter.format(totalBusinessMileage)
+        showAverage -> if (totalBusinessTrips > 0)
+            formatHours(totalBusinessDuration / totalBusinessTrips) else "—"
+        else -> formatHours(totalBusinessDuration)
+    }
+    val footerTotal: String = when {
+        metric == StatsMetric.MILEAGE -> formatter.format(totalAllMileage)
+        showAverage -> if (totalAllTrips > 0)
+            formatHours(totalAllDuration / totalAllTrips) else "—"
+        else -> formatHours(totalAllDuration)
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Header
@@ -521,19 +594,6 @@ private fun StatsTable(
         }
         HorizontalDivider()
 
-        val privateText: (YearlyStats) -> String = when (metric) {
-            StatsMetric.MILEAGE -> { y -> formatter.format(y.privateMileage) }
-            StatsMetric.DURATION -> { y -> formatHours(y.privateDurationMillis) }
-        }
-        val businessText: (YearlyStats) -> String = when (metric) {
-            StatsMetric.MILEAGE -> { y -> formatter.format(y.businessMileage) }
-            StatsMetric.DURATION -> { y -> formatHours(y.businessDurationMillis) }
-        }
-        val totalText: (YearlyStats) -> String = when (metric) {
-            StatsMetric.MILEAGE -> { y -> formatter.format(y.totalMileage) }
-            StatsMetric.DURATION -> { y -> formatHours(y.totalDurationMillis) }
-        }
-
         stats.forEach { year ->
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                 TableCell("${year.year}", weight = 1f, align = TextAlign.Start)
@@ -542,27 +602,6 @@ private fun StatsTable(
                 TableCell(totalText(year), weight = 1.4f, align = TextAlign.End)
             }
             HorizontalDivider()
-        }
-
-        // Footer totals
-        val totalPrivateMileage = stats.sumOf { it.privateMileage }
-        val totalBusinessMileage = stats.sumOf { it.businessMileage }
-        val totalAllMileage = stats.sumOf { it.totalMileage }
-        val totalPrivateDuration = stats.sumOf { it.privateDurationMillis }
-        val totalBusinessDuration = stats.sumOf { it.businessDurationMillis }
-        val totalAllDuration = stats.sumOf { it.totalDurationMillis }
-
-        val footerPrivate = when (metric) {
-            StatsMetric.MILEAGE -> formatter.format(totalPrivateMileage)
-            StatsMetric.DURATION -> formatHours(totalPrivateDuration)
-        }
-        val footerBusiness = when (metric) {
-            StatsMetric.MILEAGE -> formatter.format(totalBusinessMileage)
-            StatsMetric.DURATION -> formatHours(totalBusinessDuration)
-        }
-        val footerTotal = when (metric) {
-            StatsMetric.MILEAGE -> formatter.format(totalAllMileage)
-            StatsMetric.DURATION -> formatHours(totalAllDuration)
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
