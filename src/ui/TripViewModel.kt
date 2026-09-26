@@ -109,6 +109,17 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setDraftLeft(value) }
     }
 
+    val roundTripAssumption: StateFlow<Boolean> = settingsRepo.roundTripAssumption
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setRoundTripAssumption(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setRoundTripAssumption(value) }
+    }
+
     // ── Statistics filters ───────────────────────────────────────────
 
     private val _filterStart = MutableStateFlow<Long?>(null)

@@ -3,11 +3,9 @@ package com.nebulousprime26.mileage_tracker.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +36,7 @@ fun SettingsScreen(
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val postalFirst by viewModel.postalFirst.collectAsStateWithLifecycle()
     val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
+    val roundTripAssumption by viewModel.roundTripAssumption.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -97,15 +96,30 @@ fun SettingsScreen(
             )
 
             HorizontalDivider()
+
+            // ── Behaviour ────────────────────────────────────────────
+            Text(
+                text = "Behaviour",
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            ToggleSetting(
+                title = "Assume round trips",
+                explanation = "When adding a trip, pre-fill the end postal code with where the previous trip started.",
+                checked = roundTripAssumption,
+                onToggle = { viewModel.setRoundTripAssumption(it) },
+            )
+
+            HorizontalDivider()
         }
     }
 }
 
 /**
- * A row showing "Title    Left [Switch] Right" with the toggle cluster
- * right-aligned, and an explanation beneath. The active side's label
- * is drawn in the primary colour so the state reads without having to
- * interpret the switch itself.
+ * A single row showing "Title    Left [Switch] Right" with the toggle
+ * cluster right-aligned, and an explanation beneath. The active side's
+ * label is drawn in the primary colour so the state reads without
+ * having to interpret the switch itself.
  */
 @Composable
 private fun PositionSetting(
@@ -149,6 +163,43 @@ private fun PositionSetting(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
+            )
+        }
+        Text(
+            text = explanation,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * A simple on/off setting: the title on the left, the switch on the
+ * right, and an explanation line below.
+ */
+@Composable
+private fun ToggleSetting(
+    title: String,
+    explanation: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = checked,
+                onCheckedChange = onToggle,
             )
         }
         Text(
