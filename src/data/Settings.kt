@@ -28,8 +28,8 @@ enum class ThemeMode {
 
 /**
  * Persistent user preferences that aren't part of the trip data.
- * Includes the FAB side, the theme mode, and the trip entry layout
- * options.
+ * Includes the FAB side, the theme mode, the trip entry layout
+ * options, and behaviour toggles.
  */
 class SettingsRepository(private val context: Context) {
 
@@ -37,6 +37,7 @@ class SettingsRepository(private val context: Context) {
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val postalFirstKey = booleanPreferencesKey("postal_first")
     private val draftLeftKey = booleanPreferencesKey("draft_left")
+    private val roundTripAssumptionKey = booleanPreferencesKey("round_trip_assumption")
 
     /** True = FAB on the right side. False = FAB on the left. Defaults to right. */
     val fabOnRight: Flow<Boolean> = context.settingsDataStore.data
@@ -75,6 +76,19 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDraftLeft(draftLeft: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[draftLeftKey] = draftLeft
+        }
+    }
+
+    /**
+     * True = assume the next trip is a return leg, so the end postal is
+     * pre-filled with the previous trip's start. Defaults to true.
+     */
+    val roundTripAssumption: Flow<Boolean> = context.settingsDataStore.data
+        .map { prefs -> prefs[roundTripAssumptionKey] ?: true }
+
+    suspend fun setRoundTripAssumption(value: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[roundTripAssumptionKey] = value
         }
     }
 }
