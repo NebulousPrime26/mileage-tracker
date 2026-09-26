@@ -1,7 +1,6 @@
 - Add view for traveltime
     - Graph for monthly average traveltime; split by private, business, total
     - Table with yearly average traveltime; split by private, business, total
-- Remove spaces from postal code
 - Export to CSV with all revelant info
 - Export encrypted DB for import other device
     - Encrypted using generated AES key 

@@ -43,6 +43,11 @@ class MainActivity : ComponentActivity() {
                 val lastEndPostalCode by vm.lastEndPostalCode.collectAsStateWithLifecycle()
                 val lastStartPostalCode by vm.lastStartPostalCode.collectAsStateWithLifecycle()
                 val lastLicensePlate by vm.lastLicensePlate.collectAsStateWithLifecycle()
+                val postalFirst by vm.postalFirst.collectAsStateWithLifecycle()
+                val draftLeft by vm.draftLeft.collectAsStateWithLifecycle()
+                val roundTripAssumption by vm.roundTripAssumption.collectAsStateWithLifecycle()
+                val autoFillEndTime by vm.autoFillEndTime.collectAsStateWithLifecycle()
+                val allowSpacesInPostal by vm.allowSpacesInPostal.collectAsStateWithLifecycle()
 
                 BackHandler(enabled = screen != Screen.Landing) {
                     when (screen) {
@@ -103,6 +108,10 @@ class MainActivity : ComponentActivity() {
                         defaultStartPostalCode = lastEndPostalCode,
                         defaultEndPostalCode = lastStartPostalCode,
                         defaultLicensePlate = lastLicensePlate,
+                        postalFirst = postalFirst,
+                        draftLeft = draftLeft,
+                        autoFillEndTime = autoFillEndTime,
+                        allowSpacesInPostal = allowSpacesInPostal,
                         onSave = { trip ->
                             if (editingTrip == null) {
                                 vm.addTrip(trip)
