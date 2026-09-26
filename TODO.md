@@ -1,7 +1,3 @@
-- Add license plate to "Add trip"
-- Add end time to "Add trip"
-    - Automatically populated upon entering "end mileage"
-    - Restructure view in "Add trip"
 - Add view for traveltime
     - Graph for monthly average traveltime; split by private, business, total
     - Table with yearly average traveltime; split by private, business, total
