@@ -53,11 +53,6 @@ import java.util.Locale
 
 private const val SWEEP_DURATION_MS = 220
 
-/**
- * Formats a start/end pair. Same-day trips collapse to a single date
- * with a time range; multi-day trips show both dates in full. The
- * em dash separator reads as "from … to" without needing words.
- */
 private fun formatDateRange(start: Long, end: Long): String {
     val dayFmt = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
     val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -252,6 +247,16 @@ private fun TripSummary(trip: Trip) {
                 text = "${trip.distanceMileage} km",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            // License plate sits between distance and status so the row
+            // reads left-to-right as "how far, in what, for whom".
+            if (trip.licensePlate.isNotBlank()) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = trip.licensePlate,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (trip.privateUse) {
                 Spacer(Modifier.width(8.dp))
                 Text(
