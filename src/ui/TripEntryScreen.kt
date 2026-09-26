@@ -116,6 +116,22 @@ fun TripEntryScreen(
         }
     }
 
+    // When adding a new trip, filling in the end mileage marks the moment
+    // the trip ended, so the end time is bumped to now. The transition is
+    // detected on the blank → non-blank edge, and the whole effect is
+    // skipped for edits, so an existing trip's saved end time is never
+    // overwritten by touching the mileage field.
+    var lastEndMileageWasBlank by remember(existingTrip?.id) {
+        mutableStateOf(endMileageText.isBlank())
+    }
+    LaunchedEffect(endMileageText, existingTrip?.id) {
+        val nowBlank = endMileageText.isBlank()
+        if (existingTrip == null && lastEndMileageWasBlank && !nowBlank) {
+            endDateMillis = System.currentTimeMillis()
+        }
+        lastEndMileageWasBlank = nowBlank
+    }
+
     val startMileage = startMileageText.toDoubleOrNull()
     val endMileage = endMileageText.toDoubleOrNull()
 
