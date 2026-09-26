@@ -11,13 +11,17 @@ import kotlinx.coroutines.flow.Flow
 @Entity(tableName = "trips")
 data class Trip(
     @PrimaryKey(autoGenerate = true) val id: Long,
-    val date: Long,
+    /** When the trip began, as local epoch millis. */
+    val startDate: Long,
+    /** When the trip ended, as local epoch millis. */
+    val endDate: Long,
     val startPostalCode: String,
     val endPostalCode: String,
     val startMileage: Double,
     val endMileage: Double,
     val privateUse: Boolean,
     val notes: String,
+    /** True when the trip was saved without completing all required fields. */
     val isDraft: Boolean,
 ) {
     val distanceMileage: Double
@@ -27,16 +31,16 @@ data class Trip(
 @Dao
 interface TripDao {
 
-    @Query("SELECT * FROM trips ORDER BY date DESC")
+    @Query("SELECT * FROM trips ORDER BY startDate DESC")
     fun getAll(): Flow<List<Trip>>
 
-    @Query("SELECT * FROM trips WHERE privateUse = :isPrivate ORDER BY date DESC")
+    @Query("SELECT * FROM trips WHERE privateUse = :isPrivate ORDER BY startDate DESC")
     fun getByPrivateUse(isPrivate: Boolean): Flow<List<Trip>>
 
     @Query("SELECT MAX(endMileage) FROM trips WHERE isDraft = 0")
     fun getMaxEndMileage(): Flow<Double?>
 
-    @Query("SELECT endPostalCode FROM trips WHERE isDraft = 0 ORDER BY date DESC, id DESC LIMIT 1")
+    @Query("SELECT endPostalCode FROM trips WHERE isDraft = 0 ORDER BY startDate DESC, id DESC LIMIT 1")
     fun getLastEndPostalCode(): Flow<String?>
 
     @Insert

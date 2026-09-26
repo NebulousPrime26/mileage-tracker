@@ -68,8 +68,6 @@ fun TripEntryScreen(
     var endPostalCode by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.endPostalCode ?: "")
     }
-    // A draft may have 0.0 mileage, which means "not entered yet" — show
-    // it as an empty field rather than a misleading "0.0".
     var startMileageText by remember(existingTrip?.id) {
         val v = existingTrip?.startMileage
         mutableStateOf(if (v == null || v == 0.0) "" else v.toString())
@@ -84,13 +82,12 @@ fun TripEntryScreen(
     var notes by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.notes ?: "")
     }
-    var dateTimeMillis by remember(existingTrip?.id) {
-        mutableStateOf(existingTrip?.date ?: System.currentTimeMillis())
+    var startDateMillis by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.startDate ?: System.currentTimeMillis())
     }
-
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var pendingDateUtcMillis by remember { mutableStateOf<Long?>(null) }
+    var endDateMillis by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.endDate ?: System.currentTimeMillis())
+    }
 
     LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode) {
         if (existingTrip == null) {
@@ -107,6 +104,12 @@ fun TripEntryScreen(
     val endMileage = endMileageText.toDoubleOrNull()
 
     // ── Validation ───────────────────────────────────────────────────
+
+    val dateOrderError: String? = if (endDateMillis < startDateMillis) {
+        "End date & time can't be before the start."
+    } else {
+        null
+    }
 
     val conflictingTrip: Trip? = if (
         startMileage == null ||
@@ -126,7 +129,7 @@ fun TripEntryScreen(
         null
     } else {
         existingTrips
-            .filter { it.id != existingTrip?.id && it.date < dateTimeMillis }
+            .filter { it.id != existingTrip?.id && it.startDate < startDateMillis }
             .maxByOrNull { it.endMileage }
     }
 
@@ -134,7 +137,7 @@ fun TripEntryScreen(
         null
     } else {
         existingTrips
-            .filter { it.id != existingTrip?.id && it.date > dateTimeMillis }
+            .filter { it.id != existingTrip?.id && it.startDate > startDateMillis }
             .minByOrNull { it.startMileage }
     }
 
@@ -143,12 +146,12 @@ fun TripEntryScreen(
 
         earlierTrip != null && startMileage < earlierTrip.endMileage ->
             "Start mileage can't be below ${mileageFormatter.format(earlierTrip.endMileage)} km: " +
-                "the trip on ${shortDateFormatter.format(Date(earlierTrip.date))} " +
+                "the trip on ${shortDateFormatter.format(Date(earlierTrip.startDate))} " +
                 "already ended there."
 
         laterTrip != null && endMileage > laterTrip.startMileage ->
             "End mileage can't exceed ${mileageFormatter.format(laterTrip.startMileage)} km: " +
-                "the trip on ${shortDateFormatter.format(Date(laterTrip.date))} " +
+                "the trip on ${shortDateFormatter.format(Date(laterTrip.startDate))} " +
                 "already starts there."
 
         else -> null
@@ -159,10 +162,10 @@ fun TripEntryScreen(
         startMileage != null &&
         endMileage != null &&
         endMileage >= startMileage &&
+        dateOrderError == null &&
         conflictingTrip == null &&
         chronologyError == null
 
-    // A draft needs at least one field filled in so we don't save blank rows.
     val hasDraftContent = startPostalCode.isNotBlank() ||
         endPostalCode.isNotBlank() ||
         startMileageText.isNotBlank() ||
@@ -189,10 +192,24 @@ fun TripEntryScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            DateTimeField(
-                dateTimeMillis = dateTimeMillis,
-                onClick = { showDatePicker = true },
+            DateTimePickerField(
+                label = "Start date & time *",
+                value = startDateMillis,
+                onValueChange = { startDateMillis = it },
             )
+
+            DateTimePickerField(
+                label = "End date & time *",
+                value = endDateMillis,
+                onValueChange = { endDateMillis = it },
+            )
+
+            if (dateOrderError != null) {
+                Text(
+                    text = "⚠ $dateOrderError",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
 
             OutlinedTextField(
                 value = startPostalCode,
@@ -248,7 +265,7 @@ fun TripEntryScreen(
                     text = "⚠ Mileage range overlaps an existing trip " +
                         "(${mileageFormatter.format(conflictingTrip.startMileage)}–" +
                         "${mileageFormatter.format(conflictingTrip.endMileage)} km " +
-                        "on ${shortDateFormatter.format(Date(conflictingTrip.date))})",
+                        "on ${shortDateFormatter.format(Date(conflictingTrip.startDate))})",
                     color = MaterialTheme.colorScheme.error,
                 )
             }
@@ -285,13 +302,13 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Save (complete) ──────────────────────────────────────
             Button(
                 onClick = {
                     onSave(
                         Trip(
                             id = tripId,
-                            date = dateTimeMillis,
+                            startDate = startDateMillis,
+                            endDate = endDateMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
                             startMileage = startMileage!!,
@@ -316,13 +333,13 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Save as draft (incomplete) ───────────────────────────
             OutlinedButton(
                 onClick = {
                     onSave(
                         Trip(
                             id = tripId,
-                            date = dateTimeMillis,
+                            startDate = startDateMillis,
+                            endDate = endDateMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
                             startMileage = startMileage ?: 0.0,
@@ -342,7 +359,6 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Cancel ───────────────────────────────────────────────
             TextButton(
                 onClick = onCancel,
                 modifier = Modifier.fillMaxWidth(),
@@ -351,11 +367,48 @@ fun TripEntryScreen(
             }
         }
     }
+}
 
-    // ── Date picker ──────────────────────────────────────────────────
+/**
+ * A read-only field showing a formatted date-time, plus its own date
+ * picker followed by a time picker. Managing the two dialogs inside
+ * this composable keeps the parent screen free of picker state.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateTimePickerField(
+    label: String,
+    value: Long,
+    onValueChange: (Long) -> Unit,
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var pendingDateUtcMillis by remember { mutableStateOf<Long?>(null) }
+
+    val formatter = remember {
+        SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault())
+    }
+    val formatted = formatter.format(Date(value))
+
+    Box {
+        OutlinedTextField(
+            value = formatted,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = { showDatePicker = true }),
+        )
+    }
+
     if (showDatePicker) {
-        val initialUtcDateMillis = remember(dateTimeMillis) {
-            val local = Calendar.getInstance().apply { timeInMillis = dateTimeMillis }
+        val initialUtcDateMillis = remember(value) {
+            val local = Calendar.getInstance().apply { timeInMillis = value }
             Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                 clear()
                 set(
@@ -393,10 +446,9 @@ fun TripEntryScreen(
         }
     }
 
-    // ── Time picker ──────────────────────────────────────────────────
     if (showTimePicker) {
-        val current = remember(dateTimeMillis) {
-            Calendar.getInstance().apply { timeInMillis = dateTimeMillis }
+        val current = remember(value) {
+            Calendar.getInstance().apply { timeInMillis = value }
         }
         val timePickerState = rememberTimePickerState(
             initialHour = current.get(Calendar.HOUR_OF_DAY),
@@ -431,7 +483,7 @@ fun TripEntryScreen(
                             set(Calendar.SECOND, 0)
                             set(Calendar.MILLISECOND, 0)
                         }
-                        dateTimeMillis = localCal.timeInMillis
+                        onValueChange(localCal.timeInMillis)
                         pendingDateUtcMillis = null
                         showTimePicker = false
                     },
@@ -449,33 +501,6 @@ fun TripEntryScreen(
                     Text("Cancel")
                 }
             },
-        )
-    }
-}
-
-@Composable
-private fun DateTimeField(
-    dateTimeMillis: Long,
-    onClick: () -> Unit,
-) {
-    val formatter = remember {
-        SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault())
-    }
-    val formatted = formatter.format(Date(dateTimeMillis))
-
-    Box {
-        OutlinedTextField(
-            value = formatted,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Date & time *") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable(onClick = onClick),
         )
     }
 }

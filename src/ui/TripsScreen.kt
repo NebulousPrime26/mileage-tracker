@@ -47,10 +47,35 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 private const val SWEEP_DURATION_MS = 220
+
+/**
+ * Formats a start/end pair. Same-day trips collapse to a single date
+ * with a time range; multi-day trips show both dates in full. The
+ * em dash separator reads as "from … to" without needing words.
+ */
+private fun formatDateRange(start: Long, end: Long): String {
+    val dayFmt = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+    val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    val startCal = Calendar.getInstance().apply { timeInMillis = start }
+    val endCal = Calendar.getInstance().apply { timeInMillis = end }
+
+    val sameDay = startCal.get(Calendar.YEAR) == endCal.get(Calendar.YEAR) &&
+        startCal.get(Calendar.DAY_OF_YEAR) == endCal.get(Calendar.DAY_OF_YEAR)
+
+    return if (sameDay) {
+        "${dayFmt.format(Date(start))} · " +
+            "${timeFmt.format(Date(start))} – ${timeFmt.format(Date(end))}"
+    } else {
+        "${dayFmt.format(Date(start))} ${timeFmt.format(Date(start))} – " +
+            "${dayFmt.format(Date(end))} ${timeFmt.format(Date(end))}"
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -181,11 +206,10 @@ private fun DeleteConfirmDialog(
 
 @Composable
 private fun TripSummary(trip: Trip) {
-    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault()) }
-    val dateText = formatter.format(Date(trip.date))
+    val dateRangeText = remember(trip.startDate, trip.endDate) {
+        formatDateRange(trip.startDate, trip.endDate)
+    }
 
-    // Empty fields on a draft would otherwise show as " → " with nothing
-    // between them; the em dash reads as "not filled in yet".
     val startText = trip.startPostalCode.ifBlank { "—" }
     val endText = trip.endPostalCode.ifBlank { "—" }
 
@@ -219,7 +243,7 @@ private fun TripSummary(trip: Trip) {
         }
 
         Text(
-            text = dateText,
+            text = dateRangeText,
             style = MaterialTheme.typography.bodySmall,
         )
 
