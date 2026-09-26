@@ -28,13 +28,15 @@ enum class ThemeMode {
 
 /**
  * Persistent user preferences that aren't part of the trip data.
- * Currently just the FAB side and the theme mode, but this is where
- * future appearance options (units, default sorting) would live.
+ * Includes the FAB side, the theme mode, and the trip entry layout
+ * options.
  */
 class SettingsRepository(private val context: Context) {
 
     private val fabOnRightKey = booleanPreferencesKey("fab_on_right")
     private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val postalFirstKey = booleanPreferencesKey("postal_first")
+    private val draftLeftKey = booleanPreferencesKey("draft_left")
 
     /** True = FAB on the right side. False = FAB on the left. Defaults to right. */
     val fabOnRight: Flow<Boolean> = context.settingsDataStore.data
@@ -53,6 +55,26 @@ class SettingsRepository(private val context: Context) {
     suspend fun setThemeMode(mode: ThemeMode) {
         context.settingsDataStore.edit { prefs ->
             prefs[themeModeKey] = mode.name
+        }
+    }
+
+    /** True = postal group on the left, mileage on the right. Defaults to true. */
+    val postalFirst: Flow<Boolean> = context.settingsDataStore.data
+        .map { prefs -> prefs[postalFirstKey] ?: true }
+
+    suspend fun setPostalFirst(postalFirst: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[postalFirstKey] = postalFirst
+        }
+    }
+
+    /** True = "Save as draft" on the left, save on the right. Defaults to true. */
+    val draftLeft: Flow<Boolean> = context.settingsDataStore.data
+        .map { prefs -> prefs[draftLeftKey] ?: true }
+
+    suspend fun setDraftLeft(draftLeft: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[draftLeftKey] = draftLeft
         }
     }
 }
