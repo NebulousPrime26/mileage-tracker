@@ -4,13 +4,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -195,9 +199,9 @@ fun TripEntryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(24.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = "* Required field. Fields can be left blank if saving as a draft.",
@@ -205,11 +209,8 @@ fun TripEntryScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            // ── Row 1: License plate + Private toggle ────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            // ── Vehicle (horizontal: plate + private chip) ───────────
+            HorizontalFieldGroup {
                 OutlinedTextField(
                     value = licensePlate,
                     onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
@@ -220,7 +221,7 @@ fun TripEntryScreen(
                     ),
                     modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(8.dp))
                 FilterChip(
                     selected = privateUse,
                     onClick = { privateUse = !privateUse },
@@ -236,11 +237,8 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Row 2: Start and end date-time, side by side ─────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+            // ── Dates (horizontal: start + end) ──────────────────────
+            HorizontalFieldGroup {
                 DateTimePickerField(
                     label = "Start",
                     value = startDateMillis,
@@ -248,6 +246,7 @@ fun TripEntryScreen(
                     compact = true,
                     modifier = Modifier.weight(1f),
                 )
+                Spacer(Modifier.width(8.dp))
                 DateTimePickerField(
                     label = "End",
                     value = endDateMillis,
@@ -258,95 +257,80 @@ fun TripEntryScreen(
             }
 
             if (dateOrderError != null) {
-                Text(
-                    text = "⚠ $dateOrderError",
-                    color = MaterialTheme.colorScheme.error,
-                )
+                SectionError(dateOrderError)
             }
 
-            // ── Row 3: Start postal code + start mileage ─────────────
+            // ── Postal (left) and mileage (right), side by side ──────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    value = startPostalCode,
-                    onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
-                    label = { Text("Start postal") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = startMileageText,
-                    onValueChange = { startMileageText = it },
-                    label = { Text("Start mileage") },
-                    singleLine = true,
-                    isError = conflictingTrip != null || chronologyError != null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
+                VerticalFieldGroup(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = startPostalCode,
+                        onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
+                        label = { Text("Start postal") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Characters,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = endPostalCode,
+                        onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
+                        label = { Text("End postal") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Characters,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                VerticalFieldGroup(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = startMileageText,
+                        onValueChange = { startMileageText = it },
+                        label = { Text("Start mileage") },
+                        singleLine = true,
+                        isError = conflictingTrip != null || chronologyError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = endMileageText,
+                        onValueChange = { endMileageText = it },
+                        label = { Text("End mileage") },
+                        singleLine = true,
+                        isError = conflictingTrip != null || chronologyError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
 
-            // ── Row 4: End postal code + end mileage ─────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedTextField(
-                    value = endPostalCode,
-                    onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
-                    label = { Text("End postal") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = endMileageText,
-                    onValueChange = { endMileageText = it },
-                    label = { Text("End mileage") },
-                    singleLine = true,
-                    isError = conflictingTrip != null || chronologyError != null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            // ── Mileage-related errors ───────────────────────────────
             if (startMileage != null && endMileage != null && endMileage < startMileage) {
-                Text(
-                    text = "⚠ End mileage must be greater than or equal to start mileage",
-                    color = MaterialTheme.colorScheme.error,
-                )
+                SectionError("End mileage must be greater than or equal to start mileage")
             }
-
             if (conflictingTrip != null) {
-                Text(
-                    text = "⚠ Mileage range overlaps an existing trip " +
+                SectionError(
+                    "Mileage range overlaps an existing trip " +
                         "(${mileageFormatter.format(conflictingTrip.startMileage)}–" +
                         "${mileageFormatter.format(conflictingTrip.endMileage)} km " +
-                        "on ${shortDateFormatter.format(Date(conflictingTrip.startDate))})",
-                    color = MaterialTheme.colorScheme.error,
+                        "on ${shortDateFormatter.format(Date(conflictingTrip.startDate))})"
                 )
             }
-
             if (chronologyError != null) {
-                Text(
-                    text = "⚠ $chronologyError",
-                    color = MaterialTheme.colorScheme.error,
-                )
+                SectionError(chronologyError)
             }
 
-            // ── Row 5: Notes ─────────────────────────────────────────
+            // ── Notes (no highlight) ─────────────────────────────────
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Notes") },
-                minLines = 2,
+                minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -432,6 +416,66 @@ fun TripEntryScreen(
             }
         }
     }
+}
+
+/**
+ * A subtle rounded background grouping fields on a single horizontal
+ * row. Used where the two fields are naturally paired side by side
+ * (plate + chip, start + end date).
+ */
+@Composable
+private fun HorizontalFieldGroup(
+    content: @Composable RowScope.() -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
+}
+
+/**
+ * A subtle rounded background grouping fields stacked vertically.
+ * Used where the two fields form a start/end pair that reads better
+ * one above the other (postal codes, mileage). Takes a modifier so
+ * two of these can sit side by side with equal weight.
+ */
+@Composable
+private fun VerticalFieldGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun SectionError(message: String) {
+    Text(
+        text = "⚠ $message",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(start = 4.dp),
+    )
 }
 
 /**
