@@ -28,10 +28,6 @@ class MainActivity : ComponentActivity() {
             val vm: TripViewModel = viewModel()
             val themeMode by vm.themeMode.collectAsStateWithLifecycle()
 
-            // Read the version once from the installed APK's manifest.
-            // PackageManager reflects whatever the build wrote there, so
-            // this stays in sync with module.yaml (or the manifest, if
-            // versionName is set there instead).
             val versionName = remember { readVersionName() }
 
             MileageTheme(themeMode = themeMode) {
@@ -106,7 +102,11 @@ class MainActivity : ComponentActivity() {
                         existingTrips = trips,
                         defaultStartMileage = maxEndMileage,
                         defaultStartPostalCode = lastEndPostalCode,
-                        defaultEndPostalCode = lastStartPostalCode,
+                        defaultEndPostalCode = if (roundTripAssumption) {
+                            lastStartPostalCode
+                        } else {
+                            null
+                        },
                         defaultLicensePlate = lastLicensePlate,
                         postalFirst = postalFirst,
                         draftLeft = draftLeft,
@@ -131,11 +131,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Reads the app's versionName from its own manifest. Returns
-     * "unknown" if the manifest doesn't declare one or the lookup fails,
-     * so the UI always has something to show.
-     */
     private fun readVersionName(): String {
         return try {
             @Suppress("DEPRECATION")

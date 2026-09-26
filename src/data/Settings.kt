@@ -28,8 +28,8 @@ enum class ThemeMode {
 
 /**
  * Persistent user preferences that aren't part of the trip data.
- * Currently just the FAB side and the theme mode, but this is where
- * future appearance options (units, default sorting) would live.
+ * Includes the FAB side, the theme mode, the trip entry layout
+ * options, and behaviour toggles.
  */
 class SettingsRepository(private val context: Context) {
 
