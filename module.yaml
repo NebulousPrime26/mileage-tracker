@@ -16,6 +16,8 @@ dependencies:
 settings:
   android:
     namespace: "com.nebulousprime26.mileage_tracker"
+    versionCode: 1
+    versionName: "0.0.1"
     signing:
       enabled: true
   compose: enabled
