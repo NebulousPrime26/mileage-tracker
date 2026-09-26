@@ -3,6 +3,7 @@ package com.nebulousprime26.mileage_tracker.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -55,19 +57,14 @@ import java.util.Locale
 import java.util.TimeZone
 
 // ── Chart palette ────────────────────────────────────────────────────
-// Explicit colors from the Material palette so the three lines are
-// clearly distinguishable in hue (blue / orange / neutral), while still
-// feeling at home in a Material app. Each has a light and dark variant
-// so they stay readable against the theme's background.
+private val PrivateLight = Color(0xFF1976D2)
+private val PrivateDark  = Color(0xFF64B5F6)
+private val BusinessLight = Color(0xFFF57C00)
+private val BusinessDark  = Color(0xFFFFB74D)
+private val TotalLight = Color(0xFF424242)
+private val TotalDark  = Color(0xFFE0E0E0)
 
-private val PrivateLight = Color(0xFF1976D2) // Material Blue 700
-private val PrivateDark  = Color(0xFF64B5F6) // Material Blue 300
-
-private val BusinessLight = Color(0xFFF57C00) // Material Orange 700
-private val BusinessDark  = Color(0xFFFFB74D) // Material Orange 300
-
-private val TotalLight = Color(0xFF424242) // Material Grey 800
-private val TotalDark  = Color(0xFFE0E0E0) // Material Grey 300
+private const val MILLIS_PER_HOUR = 3_600_000.0
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +80,7 @@ fun StatsScreen(
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
     var cumulative by remember { mutableStateOf(false) }
+    var metric by remember { mutableStateOf(StatsMetric.MILEAGE) }
 
     val isDark = isSystemInDarkTheme()
     val privateColor = if (isDark) PrivateDark else PrivateLight
@@ -93,16 +91,22 @@ fun StatsScreen(
         if (!cumulative) {
             monthlyStats
         } else {
-            var runningPrivate = 0.0
-            var runningBusiness = 0.0
+            var runningPrivateMileage = 0.0
+            var runningBusinessMileage = 0.0
+            var runningPrivateDuration = 0L
+            var runningBusinessDuration = 0L
             monthlyStats.map { m ->
-                runningPrivate += m.privateMileage
-                runningBusiness += m.businessMileage
+                runningPrivateMileage += m.privateMileage
+                runningBusinessMileage += m.businessMileage
+                runningPrivateDuration += m.privateDurationMillis
+                runningBusinessDuration += m.businessDurationMillis
                 MonthlyStats(
                     year = m.year,
                     month = m.month,
-                    privateMileage = runningPrivate,
-                    businessMileage = runningBusiness,
+                    privateMileage = runningPrivateMileage,
+                    businessMileage = runningBusinessMileage,
+                    privateDurationMillis = runningPrivateDuration,
+                    businessDurationMillis = runningBusinessDuration,
                 )
             }
         }
@@ -126,6 +130,20 @@ fun StatsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // ── Metric selector ──────────────────────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = metric == StatsMetric.MILEAGE,
+                    onClick = { metric = StatsMetric.MILEAGE },
+                    label = { Text("Mileage") },
+                )
+                FilterChip(
+                    selected = metric == StatsMetric.DURATION,
+                    onClick = { metric = StatsMetric.DURATION },
+                    label = { Text("Travel time") },
+                )
+            }
+
             // ── Filters ──────────────────────────────────────────────
             Text("Filter by date", style = MaterialTheme.typography.titleMedium)
 
@@ -169,6 +187,13 @@ fun StatsScreen(
                 return@Column
             }
 
+            // ── Legend ───────────────────────────────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LegendItem("Private", privateColor)
+                LegendItem("Business", businessColor)
+                LegendItem("Total", totalColor)
+            }
+
             // ── Chart header + cumulative toggle ─────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -176,7 +201,12 @@ fun StatsScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (cumulative) "Cumulative mileage" else "Mileage over time",
+                    text = when {
+                        cumulative && metric == StatsMetric.MILEAGE -> "Cumulative mileage"
+                        cumulative -> "Cumulative travel time"
+                        metric == StatsMetric.MILEAGE -> "Mileage over time"
+                        else -> "Travel time over time"
+                    },
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -195,6 +225,7 @@ fun StatsScreen(
             // ── Line chart ───────────────────────────────────────────
             MonthlyLineChart(
                 stats = chartData,
+                metric = metric,
                 privateColor = privateColor,
                 businessColor = businessColor,
                 totalColor = totalColor,
@@ -217,7 +248,7 @@ fun StatsScreen(
             // ── Table ────────────────────────────────────────────────
             Text("Yearly breakdown", style = MaterialTheme.typography.titleMedium)
 
-            StatsTable(stats = yearlyStats)
+            StatsTable(stats = yearlyStats, metric = metric)
         }
     }
 
@@ -319,6 +350,7 @@ private fun LegendItem(label: String, color: Color) {
 @Composable
 private fun MonthlyLineChart(
     stats: List<MonthlyStats>,
+    metric: StatsMetric,
     privateColor: Color,
     businessColor: Color,
     totalColor: Color,
@@ -327,6 +359,21 @@ private fun MonthlyLineChart(
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
 
+    // Values are normalised to a single unit so the chart doesn't need
+    // to know which metric is displayed: km for mileage, hours for time.
+    val privateValues = stats.map {
+        if (metric == StatsMetric.MILEAGE) it.privateMileage
+        else it.privateDurationMillis / MILLIS_PER_HOUR
+    }
+    val businessValues = stats.map {
+        if (metric == StatsMetric.MILEAGE) it.businessMileage
+        else it.businessDurationMillis / MILLIS_PER_HOUR
+    }
+    val totalValues = stats.map {
+        if (metric == StatsMetric.MILEAGE) it.totalMileage
+        else it.totalDurationMillis / MILLIS_PER_HOUR
+    }
+
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -334,7 +381,7 @@ private fun MonthlyLineChart(
     ) {
         if (stats.isEmpty()) return@Canvas
 
-        val leftPad = 48.dp.toPx()
+        val leftPad = 52.dp.toPx()
         val rightPad = 12.dp.toPx()
         val topPad = 12.dp.toPx()
         val bottomPad = 40.dp.toPx()
@@ -342,8 +389,7 @@ private fun MonthlyLineChart(
         val chartWidth = size.width - leftPad - rightPad
         val chartHeight = size.height - topPad - bottomPad
 
-        val maxValue = stats.maxOfOrNull { it.totalMileage }
-            ?.coerceAtLeast(1.0) ?: 1.0
+        val maxValue = totalValues.maxOrNull()?.coerceAtLeast(1e-6) ?: 1.0
 
         // ── Gridlines + Y-axis labels ────────────────────────────
         val gridLines = 4
@@ -356,8 +402,13 @@ private fun MonthlyLineChart(
                 end = Offset(leftPad + chartWidth, y),
                 strokeWidth = 1.dp.toPx(),
             )
+            val axisLabel = if (metric == StatsMetric.MILEAGE) {
+                formatMileageAxis(maxValue * fraction)
+            } else {
+                formatHoursAxis(maxValue * fraction)
+            }
             val layout = textMeasurer.measure(
-                text = formatAxisValue(maxValue * fraction),
+                text = axisLabel,
                 style = TextStyle(fontSize = 10.sp, color = labelColor),
             )
             drawText(
@@ -378,7 +429,7 @@ private fun MonthlyLineChart(
             topPad + chartHeight *
                 (1f - (value / maxValue).toFloat().coerceIn(0f, 1f))
 
-        // ── X-axis labels (skip some if crowded) ─────────────────
+        // ── X-axis labels ────────────────────────────────────────
         val maxLabels = 6
         val labelStep = maxOf(1, (n + maxLabels - 1) / maxLabels)
         stats.forEachIndexed { i, month ->
@@ -427,24 +478,37 @@ private fun MonthlyLineChart(
             }
         }
 
-        // Total is drawn slightly thicker, since it's the aggregate.
-        // Draw it first so private/business overlay it.
-        drawSeries(stats.map { it.totalMileage }, totalColor, 3.dp.toPx())
-        drawSeries(stats.map { it.privateMileage }, privateColor, 2.dp.toPx())
-        drawSeries(stats.map { it.businessMileage }, businessColor, 2.dp.toPx())
+        drawSeries(totalValues, totalColor, 3.dp.toPx())
+        drawSeries(privateValues, privateColor, 2.dp.toPx())
+        drawSeries(businessValues, businessColor, 2.dp.toPx())
     }
 }
 
-/** Compact label for the y-axis: 0, 500, 1k, 2k, … */
-private fun formatAxisValue(value: Double): String = when {
+/** Compact label for the mileage y-axis: 0, 500, 1k, 2k, … */
+private fun formatMileageAxis(value: Double): String = when {
     value <= 0.0 -> "0"
     value >= 1000 -> "${(value / 1000).toInt()}k"
     value >= 100 -> value.toInt().toString()
     else -> String.format(Locale.ROOT, "%.0f", value)
 }
 
+/** Compact label for the hours y-axis: 0, 5, 10, 100, … */
+private fun formatHoursAxis(value: Double): String = when {
+    value <= 0.0 -> "0"
+    value >= 100 -> "${value.toInt()}h"
+    value >= 10 -> String.format(Locale.ROOT, "%.0f h", value)
+    else -> String.format(Locale.ROOT, "%.1f h", value)
+}
+
+/** Formats a duration as hours with one decimal. */
+private fun formatHours(millis: Long): String =
+    String.format(Locale.ROOT, "%.1f h", millis / MILLIS_PER_HOUR)
+
 @Composable
-private fun StatsTable(stats: List<YearlyStats>) {
+private fun StatsTable(
+    stats: List<YearlyStats>,
+    metric: StatsMetric,
+) {
     val formatter = remember { java.text.DecimalFormat("#,##0.0") }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -457,26 +521,55 @@ private fun StatsTable(stats: List<YearlyStats>) {
         }
         HorizontalDivider()
 
+        val privateText: (YearlyStats) -> String = when (metric) {
+            StatsMetric.MILEAGE -> { y -> formatter.format(y.privateMileage) }
+            StatsMetric.DURATION -> { y -> formatHours(y.privateDurationMillis) }
+        }
+        val businessText: (YearlyStats) -> String = when (metric) {
+            StatsMetric.MILEAGE -> { y -> formatter.format(y.businessMileage) }
+            StatsMetric.DURATION -> { y -> formatHours(y.businessDurationMillis) }
+        }
+        val totalText: (YearlyStats) -> String = when (metric) {
+            StatsMetric.MILEAGE -> { y -> formatter.format(y.totalMileage) }
+            StatsMetric.DURATION -> { y -> formatHours(y.totalDurationMillis) }
+        }
+
         stats.forEach { year ->
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                 TableCell("${year.year}", weight = 1f, align = TextAlign.Start)
-                TableCell(formatter.format(year.privateMileage), weight = 1.4f, align = TextAlign.End)
-                TableCell(formatter.format(year.businessMileage), weight = 1.4f, align = TextAlign.End)
-                TableCell(formatter.format(year.totalMileage), weight = 1.4f, align = TextAlign.End)
+                TableCell(privateText(year), weight = 1.4f, align = TextAlign.End)
+                TableCell(businessText(year), weight = 1.4f, align = TextAlign.End)
+                TableCell(totalText(year), weight = 1.4f, align = TextAlign.End)
             }
             HorizontalDivider()
         }
 
         // Footer totals
-        val totalPrivate = stats.sumOf { it.privateMileage }
-        val totalBusiness = stats.sumOf { it.businessMileage }
-        val totalAll = stats.sumOf { it.totalMileage }
+        val totalPrivateMileage = stats.sumOf { it.privateMileage }
+        val totalBusinessMileage = stats.sumOf { it.businessMileage }
+        val totalAllMileage = stats.sumOf { it.totalMileage }
+        val totalPrivateDuration = stats.sumOf { it.privateDurationMillis }
+        val totalBusinessDuration = stats.sumOf { it.businessDurationMillis }
+        val totalAllDuration = stats.sumOf { it.totalDurationMillis }
+
+        val footerPrivate = when (metric) {
+            StatsMetric.MILEAGE -> formatter.format(totalPrivateMileage)
+            StatsMetric.DURATION -> formatHours(totalPrivateDuration)
+        }
+        val footerBusiness = when (metric) {
+            StatsMetric.MILEAGE -> formatter.format(totalBusinessMileage)
+            StatsMetric.DURATION -> formatHours(totalBusinessDuration)
+        }
+        val footerTotal = when (metric) {
+            StatsMetric.MILEAGE -> formatter.format(totalAllMileage)
+            StatsMetric.DURATION -> formatHours(totalAllDuration)
+        }
 
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
             TableCell("All", weight = 1f, header = true, align = TextAlign.Start)
-            TableCell(formatter.format(totalPrivate), weight = 1.4f, header = true, align = TextAlign.End)
-            TableCell(formatter.format(totalBusiness), weight = 1.4f, header = true, align = TextAlign.End)
-            TableCell(formatter.format(totalAll), weight = 1.4f, header = true, align = TextAlign.End)
+            TableCell(footerPrivate, weight = 1.4f, header = true, align = TextAlign.End)
+            TableCell(footerBusiness, weight = 1.4f, header = true, align = TextAlign.End)
+            TableCell(footerTotal, weight = 1.4f, header = true, align = TextAlign.End)
         }
     }
 }

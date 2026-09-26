@@ -178,6 +178,10 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                         .sumOf { it.distanceMileage },
                     businessMileage = yearTrips.filter { !it.privateUse }
                         .sumOf { it.distanceMileage },
+                    privateDurationMillis = yearTrips.filter { it.privateUse }
+                        .sumOf { it.durationMillis },
+                    businessDurationMillis = yearTrips.filter { !it.privateUse }
+                        .sumOf { it.durationMillis },
                 )
             }
             .sortedBy { it.year }
@@ -210,6 +214,10 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                         .sumOf { it.distanceMileage },
                     businessMileage = monthTrips.filter { !it.privateUse }
                         .sumOf { it.distanceMileage },
+                    privateDurationMillis = monthTrips.filter { it.privateUse }
+                        .sumOf { it.durationMillis },
+                    businessDurationMillis = monthTrips.filter { !it.privateUse }
+                        .sumOf { it.durationMillis },
                 )
             }
             .sortedWith(compareBy({ it.year }, { it.month }))
