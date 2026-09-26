@@ -3,9 +3,11 @@ package com.nebulousprime26.mileage_tracker.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,51 +69,31 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // ── Trip list layout ─────────────────────────────────────
+            // ── Positions ────────────────────────────────────────────
             Text(
-                text = "Trip list",
+                text = "Positions",
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            SettingSwitch(
-                title = "Add trip button on the right",
-                subtitle = if (fabOnRight) {
-                    "Currently on the right"
-                } else {
-                    "Currently on the left"
-                },
-                checked = fabOnRight,
-                onCheckedChange = { viewModel.setFabOnRight(it) },
+            PositionSetting(
+                title = "Add Trip button",
+                explanation = "Where the floating button sits on the Trips screen.",
+                isRight = fabOnRight,
+                onToggle = { viewModel.setFabOnRight(it) },
             )
 
-            HorizontalDivider()
-
-            // ── Trip entry layout ────────────────────────────────────
-            Text(
-                text = "Trip entry",
-                style = MaterialTheme.typography.titleMedium,
+            PositionSetting(
+                title = "Postal Code group",
+                explanation = "Which side of the trip entry form the postal codes appear on, relative to mileage.",
+                isRight = !postalFirst,
+                onToggle = { viewModel.setPostalFirst(!it) },
             )
 
-            SettingSwitch(
-                title = "Postal codes before mileage",
-                subtitle = if (postalFirst) {
-                    "Postal on the left, mileage on the right"
-                } else {
-                    "Mileage on the left, postal on the right"
-                },
-                checked = postalFirst,
-                onCheckedChange = { viewModel.setPostalFirst(it) },
-            )
-
-            SettingSwitch(
-                title = "Save as draft on the left",
-                subtitle = if (draftLeft) {
-                    "Draft on the left, save on the right"
-                } else {
-                    "Save on the left, draft on the right"
-                },
-                checked = draftLeft,
-                onCheckedChange = { viewModel.setDraftLeft(it) },
+            PositionSetting(
+                title = "Save Draft button",
+                explanation = "Which side of the trip entry form the draft button appears on, relative to save.",
+                isRight = !draftLeft,
+                onToggle = { viewModel.setDraftLeft(!it) },
             )
 
             HorizontalDivider()
@@ -119,32 +101,60 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * A row showing "Title    Left [Switch] Right" with the toggle cluster
+ * right-aligned, and an explanation beneath. The active side's label
+ * is drawn in the primary colour so the state reads without having to
+ * interpret the switch itself.
+ */
 @Composable
-private fun SettingSwitch(
+private fun PositionSetting(
     title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    explanation: String,
+    isRight: Boolean,
+    onToggle: (Boolean) -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
             )
             Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "Left",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isRight) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+            )
+            Switch(
+                checked = isRight,
+                onCheckedChange = onToggle,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+            Text(
+                text = "Right",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isRight) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
             )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
+        Text(
+            text = explanation,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
