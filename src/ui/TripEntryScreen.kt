@@ -59,12 +59,14 @@ private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
 
 /**
- * Normalises a postal code fragment: uppercase, and strip whitespace so
- * the field can't contain spaces at any position. Used directly in the
- * onValueChange callbacks for the postal fields.
+ * Normalises a postal code fragment: uppercase, and strip whitespace
+ * unless the user has opted in to allowing spaces via Settings. Used
+ * directly in the onValueChange callbacks for the postal fields.
  */
-private fun sanitizePostalCode(input: String): String =
-    input.filterNot { it.isWhitespace() }.uppercase(Locale.ROOT)
+private fun sanitizePostalCode(input: String, allowSpaces: Boolean): String {
+    val withoutSpaces = if (allowSpaces) input else input.filterNot { it.isWhitespace() }
+    return withoutSpaces.uppercase(Locale.ROOT)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +80,7 @@ fun TripEntryScreen(
     postalFirst: Boolean = true,
     draftLeft: Boolean = true,
     autoFillEndTime: Boolean = true,
+    allowSpacesInPostal: Boolean = false,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -127,10 +130,10 @@ fun TripEntryScreen(
                 startMileageText = defaultStartMileage.toString()
             }
             if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
-                startPostalCode = sanitizePostalCode(defaultStartPostalCode)
+                startPostalCode = sanitizePostalCode(defaultStartPostalCode, allowSpacesInPostal)
             }
             if (endPostalCode.isEmpty() && !defaultEndPostalCode.isNullOrBlank()) {
-                endPostalCode = sanitizePostalCode(defaultEndPostalCode)
+                endPostalCode = sanitizePostalCode(defaultEndPostalCode, allowSpacesInPostal)
             }
             if (licensePlate.isEmpty() && !defaultLicensePlate.isNullOrBlank()) {
                 licensePlate = defaultLicensePlate.uppercase(Locale.ROOT)
@@ -237,7 +240,9 @@ fun TripEntryScreen(
         VerticalFieldGroup(modifier = modifier) {
             OutlinedTextField(
                 value = startPostalCode,
-                onValueChange = { startPostalCode = sanitizePostalCode(it) },
+                onValueChange = {
+                    startPostalCode = sanitizePostalCode(it, allowSpacesInPostal)
+                },
                 label = { Text("Start postal") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -247,7 +252,9 @@ fun TripEntryScreen(
             )
             OutlinedTextField(
                 value = endPostalCode,
-                onValueChange = { endPostalCode = sanitizePostalCode(it) },
+                onValueChange = {
+                    endPostalCode = sanitizePostalCode(it, allowSpacesInPostal)
+                },
                 label = { Text("End postal") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(

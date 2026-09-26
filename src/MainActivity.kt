@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                 val draftLeft by vm.draftLeft.collectAsStateWithLifecycle()
                 val roundTripAssumption by vm.roundTripAssumption.collectAsStateWithLifecycle()
                 val autoFillEndTime by vm.autoFillEndTime.collectAsStateWithLifecycle()
+                val allowSpacesInPostal by vm.allowSpacesInPostal.collectAsStateWithLifecycle()
 
                 BackHandler(enabled = screen != Screen.Landing) {
                     when (screen) {
@@ -110,6 +111,7 @@ class MainActivity : ComponentActivity() {
                         postalFirst = postalFirst,
                         draftLeft = draftLeft,
                         autoFillEndTime = autoFillEndTime,
+                        allowSpacesInPostal = allowSpacesInPostal,
                         onSave = { trip ->
                             if (editingTrip == null) {
                                 vm.addTrip(trip)

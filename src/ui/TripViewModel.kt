@@ -131,6 +131,17 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setAutoFillEndTime(value) }
     }
 
+    val allowSpacesInPostal: StateFlow<Boolean> = settingsRepo.allowSpacesInPostal
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false,
+        )
+
+    fun setAllowSpacesInPostal(value: Boolean) {
+        viewModelScope.launch { settingsRepo.setAllowSpacesInPostal(value) }
+    }
+
     // ── Statistics filters ───────────────────────────────────────────
 
     private val _filterStart = MutableStateFlow<Long?>(null)
