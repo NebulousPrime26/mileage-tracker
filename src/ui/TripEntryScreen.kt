@@ -56,6 +56,7 @@ fun TripEntryScreen(
     existingTrips: List<Trip> = emptyList(),
     defaultStartMileage: Double? = null,
     defaultStartPostalCode: String? = null,
+    defaultLicensePlate: String? = null,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -67,6 +68,9 @@ fun TripEntryScreen(
     }
     var endPostalCode by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.endPostalCode ?: "")
+    }
+    var licensePlate by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.licensePlate ?: "")
     }
     var startMileageText by remember(existingTrip?.id) {
         val v = existingTrip?.startMileage
@@ -89,13 +93,16 @@ fun TripEntryScreen(
         mutableStateOf(existingTrip?.endDate ?: System.currentTimeMillis())
     }
 
-    LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode) {
+    LaunchedEffect(existingTrip?.id, defaultStartMileage, defaultStartPostalCode, defaultLicensePlate) {
         if (existingTrip == null) {
             if (startMileageText.isEmpty() && defaultStartMileage != null) {
                 startMileageText = defaultStartMileage.toString()
             }
             if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
                 startPostalCode = defaultStartPostalCode.uppercase(Locale.ROOT)
+            }
+            if (licensePlate.isEmpty() && !defaultLicensePlate.isNullOrBlank()) {
+                licensePlate = defaultLicensePlate.uppercase(Locale.ROOT)
             }
         }
     }
@@ -168,6 +175,7 @@ fun TripEntryScreen(
 
     val hasDraftContent = startPostalCode.isNotBlank() ||
         endPostalCode.isNotBlank() ||
+        licensePlate.isNotBlank() ||
         startMileageText.isNotBlank() ||
         endMileageText.isNotBlank() ||
         notes.isNotBlank()
@@ -226,6 +234,17 @@ fun TripEntryScreen(
                 value = endPostalCode,
                 onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
                 label = { Text("End postal code *") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = licensePlate,
+                onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
+                label = { Text("License plate") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
@@ -311,6 +330,7 @@ fun TripEntryScreen(
                             endDate = endDateMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
+                            licensePlate = licensePlate,
                             startMileage = startMileage!!,
                             endMileage = endMileage!!,
                             privateUse = privateUse,
@@ -342,6 +362,7 @@ fun TripEntryScreen(
                             endDate = endDateMillis,
                             startPostalCode = startPostalCode,
                             endPostalCode = endPostalCode,
+                            licensePlate = licensePlate,
                             startMileage = startMileage ?: 0.0,
                             endMileage = endMileage ?: 0.0,
                             privateUse = privateUse,
@@ -369,11 +390,6 @@ fun TripEntryScreen(
     }
 }
 
-/**
- * A read-only field showing a formatted date-time, plus its own date
- * picker followed by a time picker. Managing the two dialogs inside
- * this composable keeps the parent screen free of picker state.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateTimePickerField(

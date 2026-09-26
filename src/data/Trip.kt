@@ -17,6 +17,8 @@ data class Trip(
     val endDate: Long,
     val startPostalCode: String,
     val endPostalCode: String,
+    /** Optional vehicle identifier. Empty means "not specified". */
+    val licensePlate: String,
     val startMileage: Double,
     val endMileage: Double,
     val privateUse: Boolean,
@@ -42,6 +44,10 @@ interface TripDao {
 
     @Query("SELECT endPostalCode FROM trips WHERE isDraft = 0 ORDER BY startDate DESC, id DESC LIMIT 1")
     fun getLastEndPostalCode(): Flow<String?>
+
+    /** The last non-blank plate on a completed trip, so it can be offered as a default. */
+    @Query("SELECT licensePlate FROM trips WHERE isDraft = 0 AND licensePlate != '' ORDER BY startDate DESC, id DESC LIMIT 1")
+    fun getLastLicensePlate(): Flow<String?>
 
     @Insert
     suspend fun insert(trip: Trip)
