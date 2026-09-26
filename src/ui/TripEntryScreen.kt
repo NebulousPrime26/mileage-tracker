@@ -203,12 +203,6 @@ fun TripEntryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = "* Required field. Fields can be left blank if saving as a draft.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
             // ── Vehicle (horizontal: plate + private chip) ───────────
             HorizontalFieldGroup {
                 OutlinedTextField(
@@ -329,7 +323,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes") },
+                label = { Text("Notes (optional)") },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -346,65 +340,69 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Save (complete) ──────────────────────────────────────
-            Button(
-                onClick = {
-                    onSave(
-                        Trip(
-                            id = tripId,
-                            startDate = startDateMillis,
-                            endDate = endDateMillis,
-                            startPostalCode = startPostalCode,
-                            endPostalCode = endPostalCode,
-                            licensePlate = licensePlate,
-                            startMileage = startMileage!!,
-                            endMileage = endMileage!!,
-                            privateUse = privateUse,
-                            notes = notes,
-                            isDraft = false,
-                        )
-                    )
-                },
-                enabled = canSave,
+            // ── Actions: draft on the left, save on the right ────────
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    when {
-                        !isEditing -> "Save trip"
-                        existingTrip.isDraft -> "Complete trip"
-                        else -> "Save changes"
-                    }
-                )
-            }
-
-            // ── Save as draft (incomplete) ───────────────────────────
-            OutlinedButton(
-                onClick = {
-                    onSave(
-                        Trip(
-                            id = tripId,
-                            startDate = startDateMillis,
-                            endDate = endDateMillis,
-                            startPostalCode = startPostalCode,
-                            endPostalCode = endPostalCode,
-                            licensePlate = licensePlate,
-                            startMileage = startMileage ?: 0.0,
-                            endMileage = endMileage ?: 0.0,
-                            privateUse = privateUse,
-                            notes = notes,
-                            isDraft = true,
+                OutlinedButton(
+                    onClick = {
+                        onSave(
+                            Trip(
+                                id = tripId,
+                                startDate = startDateMillis,
+                                endDate = endDateMillis,
+                                startPostalCode = startPostalCode,
+                                endPostalCode = endPostalCode,
+                                licensePlate = licensePlate,
+                                startMileage = startMileage ?: 0.0,
+                                endMileage = endMileage ?: 0.0,
+                                privateUse = privateUse,
+                                notes = notes,
+                                isDraft = true,
+                            )
                         )
+                    },
+                    enabled = canSaveDraft,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        if (existingTrip?.isDraft == true) "Update draft"
+                        else "Save as draft"
                     )
-                },
-                enabled = canSaveDraft,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    if (existingTrip?.isDraft == true) "Update draft"
-                    else "Save as draft"
-                )
+                }
+
+                Button(
+                    onClick = {
+                        onSave(
+                            Trip(
+                                id = tripId,
+                                startDate = startDateMillis,
+                                endDate = endDateMillis,
+                                startPostalCode = startPostalCode,
+                                endPostalCode = endPostalCode,
+                                licensePlate = licensePlate,
+                                startMileage = startMileage!!,
+                                endMileage = endMileage!!,
+                                privateUse = privateUse,
+                                notes = notes,
+                                isDraft = false,
+                            )
+                        )
+                    },
+                    enabled = canSave,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        when {
+                            !isEditing -> "Save trip"
+                            existingTrip.isDraft -> "Complete trip"
+                            else -> "Save changes"
+                        }
+                    )
+                }
             }
 
             // ── Cancel ───────────────────────────────────────────────
