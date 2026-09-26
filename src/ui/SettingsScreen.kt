@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +40,7 @@ fun SettingsScreen(
     val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
     val roundTripAssumption by viewModel.roundTripAssumption.collectAsStateWithLifecycle()
     val autoFillEndTime by viewModel.autoFillEndTime.collectAsStateWithLifecycle()
+    val allowSpacesInPostal by viewModel.allowSpacesInPostal.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -53,6 +56,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -116,6 +120,13 @@ fun SettingsScreen(
                 explanation = "When adding a trip, set the end time to now as soon as the end mileage is entered.",
                 checked = autoFillEndTime,
                 onToggle = { viewModel.setAutoFillEndTime(it) },
+            )
+
+            ToggleSetting(
+                title = "Allow spaces in postal codes",
+                explanation = null,
+                checked = allowSpacesInPostal,
+                onToggle = { viewModel.setAllowSpacesInPostal(it) },
             )
 
             HorizontalDivider()
@@ -183,12 +194,13 @@ private fun PositionSetting(
 
 /**
  * A simple on/off setting: the title on the left, the switch on the
- * right, and an explanation line below.
+ * right, and an optional explanation line below. Pass null for the
+ * explanation when the title is self-explanatory.
  */
 @Composable
 private fun ToggleSetting(
     title: String,
-    explanation: String,
+    explanation: String?,
     checked: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
@@ -210,11 +222,13 @@ private fun ToggleSetting(
                 onCheckedChange = onToggle,
             )
         }
-        Text(
-            text = explanation,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (explanation != null) {
+            Text(
+                text = explanation,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
