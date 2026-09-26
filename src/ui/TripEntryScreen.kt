@@ -5,18 +5,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -200,17 +205,57 @@ fun TripEntryScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            DateTimePickerField(
-                label = "Start date & time *",
-                value = startDateMillis,
-                onValueChange = { startDateMillis = it },
-            )
+            // ── Row 1: License plate + Private toggle ────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = licensePlate,
+                    onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
+                    label = { Text("License plate") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(12.dp))
+                FilterChip(
+                    selected = privateUse,
+                    onClick = { privateUse = !privateUse },
+                    label = { Text("Private") },
+                    leadingIcon = if (privateUse) {
+                        {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                            )
+                        }
+                    } else null,
+                )
+            }
 
-            DateTimePickerField(
-                label = "End date & time *",
-                value = endDateMillis,
-                onValueChange = { endDateMillis = it },
-            )
+            // ── Row 2: Start and end date-time, side by side ─────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                DateTimePickerField(
+                    label = "Start",
+                    value = startDateMillis,
+                    onValueChange = { startDateMillis = it },
+                    compact = true,
+                    modifier = Modifier.weight(1f),
+                )
+                DateTimePickerField(
+                    label = "End",
+                    value = endDateMillis,
+                    onValueChange = { endDateMillis = it },
+                    compact = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
             if (dateOrderError != null) {
                 Text(
@@ -219,59 +264,59 @@ fun TripEntryScreen(
                 )
             }
 
-            OutlinedTextField(
-                value = startPostalCode,
-                onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
-                label = { Text("Start postal code *") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
+            // ── Row 3: Start postal code + start mileage ─────────────
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-            )
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = startPostalCode,
+                    onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
+                    label = { Text("Start postal") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = startMileageText,
+                    onValueChange = { startMileageText = it },
+                    label = { Text("Start mileage") },
+                    singleLine = true,
+                    isError = conflictingTrip != null || chronologyError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
-            OutlinedTextField(
-                value = endPostalCode,
-                onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
-                label = { Text("End postal code *") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
+            // ── Row 4: End postal code + end mileage ─────────────────
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-            )
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = endPostalCode,
+                    onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
+                    label = { Text("End postal") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = endMileageText,
+                    onValueChange = { endMileageText = it },
+                    label = { Text("End mileage") },
+                    singleLine = true,
+                    isError = conflictingTrip != null || chronologyError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
-            OutlinedTextField(
-                value = licensePlate,
-                onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
-                label = { Text("License plate") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = startMileageText,
-                onValueChange = { startMileageText = it },
-                label = { Text("Start mileage *") },
-                singleLine = true,
-                isError = conflictingTrip != null || chronologyError != null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = endMileageText,
-                onValueChange = { endMileageText = it },
-                label = { Text("End mileage *") },
-                singleLine = true,
-                isError = conflictingTrip != null || chronologyError != null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
+            // ── Mileage-related errors ───────────────────────────────
             if (startMileage != null && endMileage != null && endMileage < startMileage) {
                 Text(
                     text = "⚠ End mileage must be greater than or equal to start mileage",
@@ -296,11 +341,7 @@ fun TripEntryScreen(
                 )
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = privateUse, onCheckedChange = { privateUse = it })
-                Text("Private")
-            }
-
+            // ── Row 5: Notes ─────────────────────────────────────────
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
@@ -321,6 +362,7 @@ fun TripEntryScreen(
                 )
             }
 
+            // ── Save (complete) ──────────────────────────────────────
             Button(
                 onClick = {
                     onSave(
@@ -353,6 +395,7 @@ fun TripEntryScreen(
                 )
             }
 
+            // ── Save as draft (incomplete) ───────────────────────────
             OutlinedButton(
                 onClick = {
                     onSave(
@@ -380,6 +423,7 @@ fun TripEntryScreen(
                 )
             }
 
+            // ── Cancel ───────────────────────────────────────────────
             TextButton(
                 onClick = onCancel,
                 modifier = Modifier.fillMaxWidth(),
@@ -390,23 +434,35 @@ fun TripEntryScreen(
     }
 }
 
+/**
+ * A read-only field showing a formatted date-time. Tapping opens the
+ * date picker, then the time picker.
+ *
+ * In compact mode the format drops the year and uses a shorter
+ * separator, so the value fits comfortably when two fields share a row.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateTimePickerField(
     label: String,
     value: Long,
     onValueChange: (Long) -> Unit,
+    compact: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var pendingDateUtcMillis by remember { mutableStateOf<Long?>(null) }
 
-    val formatter = remember {
-        SimpleDateFormat("EEE, d MMM yyyy · HH:mm", Locale.getDefault())
+    val formatter = remember(compact) {
+        SimpleDateFormat(
+            if (compact) "d MMM · HH:mm" else "EEE, d MMM yyyy · HH:mm",
+            Locale.getDefault(),
+        )
     }
     val formatted = formatter.format(Date(value))
 
-    Box {
+    Box(modifier = modifier) {
         OutlinedTextField(
             value = formatted,
             onValueChange = {},
