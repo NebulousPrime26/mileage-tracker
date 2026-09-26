@@ -21,7 +21,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     private val dao: TripDao = getDatabase(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
 
-    /** All trips, newest first. Re-emits whenever the database changes. */
     val trips: StateFlow<List<Trip>> = dao.getAll()
         .stateIn(
             scope = viewModelScope,
@@ -29,7 +28,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
-    /** Private-use trips only. */
     val privateTrips: StateFlow<List<Trip>> = dao.getByPrivateUse(true)
         .stateIn(
             scope = viewModelScope,
@@ -37,7 +35,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
-    /** Highest end mileage across all trips, or null when there are none. */
     val maxEndMileage: StateFlow<Double?> = dao.getMaxEndMileage()
         .stateIn(
             scope = viewModelScope,
@@ -45,7 +42,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = null,
         )
 
-    /** End postal code of the most recent trip, or null when there are none. */
     val lastEndPostalCode: StateFlow<String?> = dao.getLastEndPostalCode()
         .stateIn(
             scope = viewModelScope,
@@ -55,7 +51,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── User settings ────────────────────────────────────────────────
 
-    /** True = "Add trip" FAB on the right side. False = left. Defaults to right. */
     val fabOnRight: StateFlow<Boolean> = settingsRepo.fabOnRight
         .stateIn(
             scope = viewModelScope,
@@ -67,7 +62,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setFabOnRight(onRight) }
     }
 
-    /** Which theme to use: System, Light, or Dark. Defaults to System. */
     val themeMode: StateFlow<ThemeMode> = settingsRepo.themeMode
         .stateIn(
             scope = viewModelScope,
@@ -94,7 +88,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         _filterEnd.value = null
     }
 
-    /** Mileage split into private/business/total, aggregated per calendar year. */
     val yearlyStats: StateFlow<List<YearlyStats>> = combine(
         dao.getAll(),
         _filterStart,
@@ -102,11 +95,11 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     ) { trips, start, end ->
         trips
             .filter { trip ->
-                (start == null || trip.date >= start) &&
-                (end == null || trip.date <= end)
+                (start == null || trip.startDate >= start) &&
+                (end == null || trip.startDate <= end)
             }
             .groupBy { trip ->
-                Calendar.getInstance().apply { timeInMillis = trip.date }
+                Calendar.getInstance().apply { timeInMillis = trip.startDate }
                     .get(Calendar.YEAR)
             }
             .map { (year, yearTrips) ->
@@ -126,7 +119,6 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             initialValue = emptyList(),
         )
 
-    /** Mileage split into private/business/total, aggregated per calendar month. */
     val monthlyStats: StateFlow<List<MonthlyStats>> = combine(
         dao.getAll(),
         _filterStart,
@@ -134,11 +126,11 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     ) { trips, start, end ->
         trips
             .filter { trip ->
-                (start == null || trip.date >= start) &&
-                (end == null || trip.date <= end)
+                (start == null || trip.startDate >= start) &&
+                (end == null || trip.startDate <= end)
             }
             .groupBy { trip ->
-                val cal = Calendar.getInstance().apply { timeInMillis = trip.date }
+                val cal = Calendar.getInstance().apply { timeInMillis = trip.startDate }
                 cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
             }
             .map { (key, monthTrips) ->

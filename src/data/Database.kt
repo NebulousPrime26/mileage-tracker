@@ -8,7 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
-@Database(entities = [Trip::class], version = 2)
+@Database(entities = [Trip::class], version = 3)
 abstract class MileageDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
 }
@@ -24,6 +24,15 @@ private val lock = Any()
 private val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE trips ADD COLUMN isDraft INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE trips RENAME COLUMN date TO startDate")
+        db.execSQL("ALTER TABLE trips ADD COLUMN endDate INTEGER NOT NULL DEFAULT 0")
+        // Existing single-point trips get endDate = startDate.
+        db.execSQL("UPDATE trips SET endDate = startDate")
     }
 }
 
@@ -44,7 +53,7 @@ fun getDatabase(context: Context): MileageDatabase {
                 DB_NAME
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 .also { INSTANCE = it }
         }
