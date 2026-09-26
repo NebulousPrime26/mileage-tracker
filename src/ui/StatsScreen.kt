@@ -180,13 +180,6 @@ fun StatsScreen(
                 return@Column
             }
 
-            // ── Legend ───────────────────────────────────────────────
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                LegendItem("Private", privateColor)
-                LegendItem("Business", businessColor)
-                LegendItem("Total", totalColor)
-            }
-
             // ── Chart header + metric-specific toggle ────────────────
             val isAverageMode = metric == StatsMetric.DURATION && averageDuration
             ChartHeader(
