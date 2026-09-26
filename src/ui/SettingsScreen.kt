@@ -73,54 +73,37 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // ── Positions ────────────────────────────────────────────
+            // ── Layout ───────────────────────────────────────────────
             Text(
-                text = "Positions",
+                text = "Layout",
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            PositionSetting(
-                title = "Add Trip button",
-                explanation = "Where the floating button sits on the Trips screen.",
-                isRight = fabOnRight,
-                onToggle = { viewModel.setFabOnRight(it) },
-            )
-
-            PositionSetting(
-                title = "Postal Code group",
-                explanation = "Which side of the trip entry form the postal codes appear on, relative to mileage.",
-                isRight = !postalFirst,
-                onToggle = { viewModel.setPostalFirst(!it) },
-            )
-
-            PositionSetting(
-                title = "Save Draft button",
-                explanation = "Which side of the trip entry form the draft button appears on, relative to save.",
-                isRight = !draftLeft,
-                onToggle = { viewModel.setDraftLeft(!it) },
-            )
-
-            HorizontalDivider()
-
-            // ── Behaviour ────────────────────────────────────────────
-            Text(
-                text = "Behaviour",
-                style = MaterialTheme.typography.titleMedium,
-            )
-
-            ToggleSetting(
-                title = "Assume round trips",
-                explanation = "When adding a trip, pre-fill the end postal code with where the previous trip started.",
-                checked = roundTripAssumption,
-                onToggle = { viewModel.setRoundTripAssumption(it) },
-            )
-
-            ToggleSetting(
-                title = "Auto-fill end time",
-                explanation = "When adding a trip, set the end time to now as soon as the end mileage is entered.",
-                checked = autoFillEndTime,
-                onToggle = { viewModel.setAutoFillEndTime(it) },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Add trip button on the right",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = if (fabOnRight) {
+                            "Currently on the right"
+                        } else {
+                            "Currently on the left"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = fabOnRight,
+                    onCheckedChange = { viewModel.setFabOnRight(it) },
+                )
+            }
 
             ToggleSetting(
                 title = "Allow spaces in postal codes",
@@ -237,6 +220,9 @@ private fun ThemeModeSelector(
     selected: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
 ) {
+    // A radio group is the clearest pattern for a small set of mutually
+    // exclusive options, and it's universally available in Material 3
+    // without needing the segmented-button APIs from newer releases.
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -262,7 +248,7 @@ private fun ThemeModeSelector(
             ) {
                 RadioButton(
                     selected = mode == selected,
-                    onClick = null,
+                    onClick = null, // the row handles the click
                 )
                 Text(
                     text = label,
