@@ -58,6 +58,14 @@ import java.util.TimeZone
 private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
 
+/**
+ * Normalises a postal code fragment: uppercase, and strip whitespace so
+ * the field can't contain spaces at any position. Used directly in the
+ * onValueChange callbacks for the postal fields.
+ */
+private fun sanitizePostalCode(input: String): String =
+    input.filterNot { it.isWhitespace() }.uppercase(Locale.ROOT)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripEntryScreen(
@@ -119,10 +127,10 @@ fun TripEntryScreen(
                 startMileageText = defaultStartMileage.toString()
             }
             if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
-                startPostalCode = defaultStartPostalCode.uppercase(Locale.ROOT)
+                startPostalCode = sanitizePostalCode(defaultStartPostalCode)
             }
             if (endPostalCode.isEmpty() && !defaultEndPostalCode.isNullOrBlank()) {
-                endPostalCode = defaultEndPostalCode.uppercase(Locale.ROOT)
+                endPostalCode = sanitizePostalCode(defaultEndPostalCode)
             }
             if (licensePlate.isEmpty() && !defaultLicensePlate.isNullOrBlank()) {
                 licensePlate = defaultLicensePlate.uppercase(Locale.ROOT)
@@ -229,7 +237,7 @@ fun TripEntryScreen(
         VerticalFieldGroup(modifier = modifier) {
             OutlinedTextField(
                 value = startPostalCode,
-                onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
+                onValueChange = { startPostalCode = sanitizePostalCode(it) },
                 label = { Text("Start postal") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -239,7 +247,7 @@ fun TripEntryScreen(
             )
             OutlinedTextField(
                 value = endPostalCode,
-                onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
+                onValueChange = { endPostalCode = sanitizePostalCode(it) },
                 label = { Text("End postal") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
