@@ -28,6 +28,12 @@ class MainActivity : ComponentActivity() {
             val vm: TripViewModel = viewModel()
             val themeMode by vm.themeMode.collectAsStateWithLifecycle()
 
+            // Read the version once from the installed APK's manifest.
+            // PackageManager reflects whatever the build wrote there, so
+            // this stays in sync with module.yaml (or the manifest, if
+            // versionName is set there instead).
+            val versionName = remember { readVersionName() }
+
             MileageTheme(themeMode = themeMode) {
                 var screen by remember { mutableStateOf(Screen.Landing) }
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
@@ -59,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
                 when (screen) {
                     Screen.Landing -> LandingScreen(
+                        versionName = versionName,
                         onContinue = { screen = Screen.Trips },
                         onSettings = { screen = Screen.Settings },
                         onImport = { /* TODO */ },
@@ -112,6 +119,20 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Reads the app's versionName from its own manifest. Returns
+     * "unknown" if the manifest doesn't declare one or the lookup fails,
+     * so the UI always has something to show.
+     */
+    private fun readVersionName(): String {
+        return try {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
+        } catch (_: Exception) {
+            "unknown"
         }
     }
 }
