@@ -58,6 +58,14 @@ import java.util.TimeZone
 private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
 
+/**
+ * Normalises a postal code fragment: uppercase, and strip whitespace so
+ * the field can't contain spaces at any position. Used directly in the
+ * onValueChange callbacks for the postal fields.
+ */
+private fun sanitizePostalCode(input: String): String =
+    input.filterNot { it.isWhitespace() }.uppercase(Locale.ROOT)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripEntryScreen(
@@ -67,6 +75,9 @@ fun TripEntryScreen(
     defaultStartPostalCode: String? = null,
     defaultEndPostalCode: String? = null,
     defaultLicensePlate: String? = null,
+    postalFirst: Boolean = true,
+    draftLeft: Boolean = true,
+    autoFillEndTime: Boolean = true,
     onSave: (Trip) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -103,11 +114,7 @@ fun TripEntryScreen(
         mutableStateOf(existingTrip?.endDate ?: System.currentTimeMillis())
     }
 
-    // Seed new trips from the last completed trip: the odometer continues
-    // from the highest end mileage, the journey starts where the last one
-    // finished, and — assuming a round trip — ends where the last one
-    // started. Only for new trips, only when the field is still empty,
-    // and only once the values have actually arrived from the database.
+    // Seed new trips from the last completed trip.
     LaunchedEffect(
         existingTrip?.id,
         defaultStartMileage,
@@ -120,10 +127,10 @@ fun TripEntryScreen(
                 startMileageText = defaultStartMileage.toString()
             }
             if (startPostalCode.isEmpty() && !defaultStartPostalCode.isNullOrBlank()) {
-                startPostalCode = defaultStartPostalCode.uppercase(Locale.ROOT)
+                startPostalCode = sanitizePostalCode(defaultStartPostalCode)
             }
             if (endPostalCode.isEmpty() && !defaultEndPostalCode.isNullOrBlank()) {
-                endPostalCode = defaultEndPostalCode.uppercase(Locale.ROOT)
+                endPostalCode = sanitizePostalCode(defaultEndPostalCode)
             }
             if (licensePlate.isEmpty() && !defaultLicensePlate.isNullOrBlank()) {
                 licensePlate = defaultLicensePlate.uppercase(Locale.ROOT)
@@ -134,14 +141,16 @@ fun TripEntryScreen(
     // When adding a new trip, filling in the end mileage marks the moment
     // the trip ended, so the end time is bumped to now. The transition is
     // detected on the blank → non-blank edge, and the whole effect is
-    // skipped for edits, so an existing trip's saved end time is never
-    // overwritten by touching the mileage field.
+    // skipped for edits and when the user has disabled the auto-fill in
+    // Settings, so an existing trip's saved end time is never overwritten.
     var lastEndMileageWasBlank by remember(existingTrip?.id) {
         mutableStateOf(endMileageText.isBlank())
     }
-    LaunchedEffect(endMileageText, existingTrip?.id) {
+    LaunchedEffect(endMileageText, existingTrip?.id, autoFillEndTime) {
         val nowBlank = endMileageText.isBlank()
-        if (existingTrip == null && lastEndMileageWasBlank && !nowBlank) {
+        if (existingTrip == null && autoFillEndTime &&
+            lastEndMileageWasBlank && !nowBlank
+        ) {
             endDateMillis = System.currentTimeMillis()
         }
         lastEndMileageWasBlank = nowBlank
@@ -221,6 +230,119 @@ fun TripEntryScreen(
         notes.isNotBlank()
     val canSaveDraft = hasDraftContent
 
+    // Local composable lambdas so the postal/mileage groups can be
+    // reordered based on the user's layout preference without
+    // duplicating all of the field wiring.
+    val postalGroup: @Composable (Modifier) -> Unit = { modifier ->
+        VerticalFieldGroup(modifier = modifier) {
+            OutlinedTextField(
+                value = startPostalCode,
+                onValueChange = { startPostalCode = sanitizePostalCode(it) },
+                label = { Text("Start postal") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = endPostalCode,
+                onValueChange = { endPostalCode = sanitizePostalCode(it) },
+                label = { Text("End postal") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    val mileageGroup: @Composable (Modifier) -> Unit = { modifier ->
+        VerticalFieldGroup(modifier = modifier) {
+            OutlinedTextField(
+                value = startMileageText,
+                onValueChange = { startMileageText = it },
+                label = { Text("Start mileage") },
+                singleLine = true,
+                isError = conflictingTrip != null || chronologyError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = endMileageText,
+                onValueChange = { endMileageText = it },
+                label = { Text("End mileage") },
+                singleLine = true,
+                isError = conflictingTrip != null || chronologyError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    // Same trick for the two action buttons.
+    val draftButton: @Composable (Modifier) -> Unit = { modifier ->
+        OutlinedButton(
+            onClick = {
+                onSave(
+                    Trip(
+                        id = tripId,
+                        startDate = startDateMillis,
+                        endDate = endDateMillis,
+                        startPostalCode = startPostalCode,
+                        endPostalCode = endPostalCode,
+                        licensePlate = licensePlate,
+                        startMileage = startMileage ?: 0.0,
+                        endMileage = endMileage ?: 0.0,
+                        privateUse = privateUse,
+                        notes = notes,
+                        isDraft = true,
+                    )
+                )
+            },
+            enabled = canSaveDraft,
+            modifier = modifier,
+        ) {
+            Text(
+                if (existingTrip?.isDraft == true) "Update draft"
+                else "Save as draft"
+            )
+        }
+    }
+
+    val saveButton: @Composable (Modifier) -> Unit = { modifier ->
+        Button(
+            onClick = {
+                onSave(
+                    Trip(
+                        id = tripId,
+                        startDate = startDateMillis,
+                        endDate = endDateMillis,
+                        startPostalCode = startPostalCode,
+                        endPostalCode = endPostalCode,
+                        licensePlate = licensePlate,
+                        startMileage = startMileage!!,
+                        endMileage = endMileage!!,
+                        privateUse = privateUse,
+                        notes = notes,
+                        isDraft = false,
+                    )
+                )
+            },
+            enabled = canSave,
+            modifier = modifier,
+        ) {
+            Text(
+                when {
+                    !isEditing -> "Save trip"
+                    existingTrip.isDraft -> "Complete trip"
+                    else -> "Save changes"
+                }
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(if (isEditing) "Edit trip" else "New trip") })
@@ -234,7 +356,7 @@ fun TripEntryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // ── Vehicle (horizontal: plate + private chip) ───────────
+            // ── Vehicle ──────────────────────────────────────────────
             HorizontalFieldGroup {
                 OutlinedTextField(
                     value = licensePlate,
@@ -262,7 +384,7 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Dates (horizontal: start + end) ──────────────────────
+            // ── Dates ────────────────────────────────────────────────
             HorizontalFieldGroup {
                 DateTimePickerField(
                     label = "Start",
@@ -285,53 +407,17 @@ fun TripEntryScreen(
                 SectionError(dateOrderError)
             }
 
-            // ── Postal (left) and mileage (right), side by side ──────
+            // ── Postal and mileage, order controlled by preference ───
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                VerticalFieldGroup(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = startPostalCode,
-                        onValueChange = { startPostalCode = it.uppercase(Locale.ROOT) },
-                        label = { Text("Start postal") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Characters,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = endPostalCode,
-                        onValueChange = { endPostalCode = it.uppercase(Locale.ROOT) },
-                        label = { Text("End postal") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Characters,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                VerticalFieldGroup(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = startMileageText,
-                        onValueChange = { startMileageText = it },
-                        label = { Text("Start mileage") },
-                        singleLine = true,
-                        isError = conflictingTrip != null || chronologyError != null,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = endMileageText,
-                        onValueChange = { endMileageText = it },
-                        label = { Text("End mileage") },
-                        singleLine = true,
-                        isError = conflictingTrip != null || chronologyError != null,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                if (postalFirst) {
+                    postalGroup(Modifier.weight(1f))
+                    mileageGroup(Modifier.weight(1f))
+                } else {
+                    mileageGroup(Modifier.weight(1f))
+                    postalGroup(Modifier.weight(1f))
                 }
             }
 
@@ -350,7 +436,7 @@ fun TripEntryScreen(
                 SectionError(chronologyError)
             }
 
-            // ── Notes (no highlight) ─────────────────────────────────
+            // ── Notes ────────────────────────────────────────────────
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
@@ -371,68 +457,19 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Actions: draft on the left, save on the right ────────
+            // ── Actions, order controlled by preference ──────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
-                    onClick = {
-                        onSave(
-                            Trip(
-                                id = tripId,
-                                startDate = startDateMillis,
-                                endDate = endDateMillis,
-                                startPostalCode = startPostalCode,
-                                endPostalCode = endPostalCode,
-                                licensePlate = licensePlate,
-                                startMileage = startMileage ?: 0.0,
-                                endMileage = endMileage ?: 0.0,
-                                privateUse = privateUse,
-                                notes = notes,
-                                isDraft = true,
-                            )
-                        )
-                    },
-                    enabled = canSaveDraft,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        if (existingTrip?.isDraft == true) "Update draft"
-                        else "Save as draft"
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        onSave(
-                            Trip(
-                                id = tripId,
-                                startDate = startDateMillis,
-                                endDate = endDateMillis,
-                                startPostalCode = startPostalCode,
-                                endPostalCode = endPostalCode,
-                                licensePlate = licensePlate,
-                                startMileage = startMileage!!,
-                                endMileage = endMileage!!,
-                                privateUse = privateUse,
-                                notes = notes,
-                                isDraft = false,
-                            )
-                        )
-                    },
-                    enabled = canSave,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        when {
-                            !isEditing -> "Save trip"
-                            existingTrip.isDraft -> "Complete trip"
-                            else -> "Save changes"
-                        }
-                    )
+                if (draftLeft) {
+                    draftButton(Modifier.weight(1f))
+                    saveButton(Modifier.weight(1f))
+                } else {
+                    saveButton(Modifier.weight(1f))
+                    draftButton(Modifier.weight(1f))
                 }
             }
 
@@ -447,11 +484,6 @@ fun TripEntryScreen(
     }
 }
 
-/**
- * A subtle rounded background grouping fields on a single horizontal
- * row. Used where the two fields are naturally paired side by side
- * (plate + chip, start + end date).
- */
 @Composable
 private fun HorizontalFieldGroup(
     content: @Composable RowScope.() -> Unit,
@@ -471,12 +503,6 @@ private fun HorizontalFieldGroup(
     }
 }
 
-/**
- * A subtle rounded background grouping fields stacked vertically.
- * Used where the two fields form a start/end pair that reads better
- * one above the other (postal codes, mileage). Takes a modifier so
- * two of these can sit side by side with equal weight.
- */
 @Composable
 private fun VerticalFieldGroup(
     modifier: Modifier = Modifier,
@@ -507,13 +533,6 @@ private fun SectionError(message: String) {
     )
 }
 
-/**
- * A read-only field showing a formatted date-time. Tapping opens the
- * date picker, then the time picker.
- *
- * In compact mode the format drops the year and uses a shorter
- * separator, so the value fits comfortably when two fields share a row.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateTimePickerField(
