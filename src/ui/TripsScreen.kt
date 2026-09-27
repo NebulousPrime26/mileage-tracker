@@ -1,16 +1,14 @@
 package com.nebulousprime26.mileage_tracker.ui
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,15 +20,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
@@ -59,37 +56,37 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.math.roundToInt
 
 private const val SWEEP_DURATION_MS = 220
 
-/**
- * Duration of the filter sheet's enter and exit animations. A single
- * value is used for both so they feel symmetric.
- */
 private const val FILTER_SHEET_ANIM_MS = 350
+private const val FILTER_SHEET_SNAP_MS = 200
+private const val DISMISS_THRESHOLD_FRACTION = 0.3f
+private const val DISMISS_VELOCITY_THRESHOLD = 800f
 
-/**
- * All the criteria a trip can be filtered on. Every field is optional —
- * null or blank means "no constraint on this field".
- */
 private data class TripFilterSpec(
     val startDateFrom: Long? = null,
     val startDateTo: Long? = null,
@@ -98,7 +95,7 @@ private data class TripFilterSpec(
     val licensePlateContains: String = "",
     val minDistanceKm: Double? = null,
     val maxDistanceKm: Double? = null,
-    val privateOnly: Boolean? = null,   // null = both, true = private, false = business
+    val privateOnly: Boolean? = null,
     val includeDrafts: Boolean = false,
 ) {
     val isActive: Boolean
@@ -126,7 +123,6 @@ private data class TripFilterSpec(
         ).count { it }
 }
 
-/** Applies the spec to a list of trips. */
 private fun List<Trip>.applyFilter(spec: TripFilterSpec): List<Trip> = filter { trip ->
     (spec.includeDrafts || !trip.isDraft) &&
         (spec.startDateFrom == null || trip.startDate >= spec.startDateFrom) &&
@@ -188,8 +184,6 @@ fun TripsScreen(
         onEditTrip(trip)
     }
 
-    // Outer Box so the filter sheet overlay can draw on top of the
-    // whole screen, including the top bar and FABs.
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -279,7 +273,6 @@ fun TripsScreen(
             }
         }
 
-        // Filter sheet overlay sits above the entire Scaffold.
         FilterSheetOverlay(
             visible = showFilterSheet,
             initial = filterSpec,
@@ -303,11 +296,6 @@ fun TripsScreen(
     }
 }
 
-/**
- * The filter FAB. Uses the same ExtendedFAB shape as Add trip so the
- * pair reads as a matched set, but with a subdued container when
- * inactive and a tinted container when a filter is applied.
- */
 @Composable
 private fun FilterFab(
     isActive: Boolean,
@@ -335,14 +323,6 @@ private fun FilterFab(
 
 // ── Filter sheet overlay ─────────────────────────────────────────────
 
-/**
- * A custom bottom-sheet overlay. Unlike Material 3's `ModalBottomSheet`,
- * its enter and exit animations are both driven by the same `tween`, so
- * the slide-down takes exactly as long as the slide-up.
- *
- * The overlay is always composed; visibility is controlled by
- * [visible], and `AnimatedVisibility` handles the transition.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FilterSheetOverlay(
@@ -351,9 +331,8 @@ private fun FilterSheetOverlay(
     onApply: (TripFilterSpec) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // The sheet stays in the tree while hidden, so the working spec has
-    // to be reset each time the sheet becomes visible — otherwise the
-    // user would see their previous edits rather than the applied filter.
+    val scope = rememberCoroutineScope()
+
     var spec by remember { mutableStateOf(initial) }
     LaunchedEffect(visible) {
         if (visible) spec = initial
@@ -362,23 +341,50 @@ private fun FilterSheetOverlay(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
 
-    val interactionSource = remember { MutableInteractionSource() }
+    var sheetHeightPx by remember { mutableStateOf(0f) }
+    var hasBeenMeasured by remember { mutableStateOf(false) }
+
+    val offsetY = remember { Animatable(0f) }
+
+    LaunchedEffect(visible, sheetHeightPx) {
+        if (sheetHeightPx == 0f) return@LaunchedEffect
+        if (!hasBeenMeasured) {
+            hasBeenMeasured = true
+            offsetY.snapTo(if (visible) 0f else sheetHeightPx)
+            return@LaunchedEffect
+        }
+        if (visible) {
+            offsetY.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(FILTER_SHEET_ANIM_MS, easing = FastOutSlowInEasing),
+            )
+        } else {
+            offsetY.animateTo(
+                targetValue = sheetHeightPx,
+                animationSpec = tween(FILTER_SHEET_ANIM_MS, easing = FastOutSlowInEasing),
+            )
+        }
+    }
+
+    val progress = if (sheetHeightPx > 0f) {
+        (1f - offsetY.value / sheetHeightPx).coerceIn(0f, 1f)
+    } else {
+        if (visible) 1f else 0f
+    }
+
+    val scrimInteraction = remember { MutableInteractionSource() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // ── Scrim ────────────────────────────────────────────────
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tween(FILTER_SHEET_ANIM_MS)),
-            exit = fadeOut(tween(FILTER_SHEET_ANIM_MS)),
-        ) {
+        if (progress > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f * progress),
                     )
                     .clickable(
-                        interactionSource = interactionSource,
+                        interactionSource = scrimInteraction,
                         indication = null,
                         onClick = onDismiss,
                     ),
@@ -386,189 +392,204 @@ private fun FilterSheetOverlay(
         }
 
         // ── Sheet ────────────────────────────────────────────────
-        AnimatedVisibility(
-            visible = visible,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = tween(
-                    durationMillis = FILTER_SHEET_ANIM_MS,
-                    easing = FastOutSlowInEasing,
+        // No verticalScroll on the content: the layout fits without
+        // it, and a scroll modifier would intercept the vertical drag
+        // gesture before the draggable below ever sees it.
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { sheetHeightPx = it.height.toFloat() }
+                .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    state = rememberDraggableState { delta ->
+                        // Track the finger directly. snapTo cancels any
+                        // in-flight animation, so a drag mid-slide takes
+                        // over cleanly.
+                        val newValue = (offsetY.value + delta)
+                            .coerceIn(0f, sheetHeightPx)
+                        scope.launch { offsetY.snapTo(newValue) }
+                    },
+                    onDragStopped = { velocity ->
+                        scope.launch {
+                            val pastDistance =
+                                offsetY.value > sheetHeightPx * DISMISS_THRESHOLD_FRACTION
+                            val pastVelocity = velocity > DISMISS_VELOCITY_THRESHOLD
+                            if (pastDistance || pastVelocity) {
+                                offsetY.animateTo(
+                                    targetValue = sheetHeightPx,
+                                    animationSpec = tween(
+                                        FILTER_SHEET_SNAP_MS,
+                                        easing = FastOutSlowInEasing,
+                                    ),
+                                )
+                                onApply(spec)
+                            } else {
+                                offsetY.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(
+                                        FILTER_SHEET_SNAP_MS,
+                                        easing = FastOutSlowInEasing,
+                                    ),
+                                )
+                            }
+                        }
+                    },
                 ),
-            ),
-            exit = slideOutVertically(
-                targetOffsetY = { it },
-                animationSpec = tween(
-                    durationMillis = FILTER_SHEET_ANIM_MS,
-                    easing = FastOutSlowInEasing,
-                ),
-            ),
-            modifier = Modifier.align(Alignment.BottomCenter),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 3.dp,
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = 3.dp,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 12.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Column(
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 12.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                ) {
-                    // Drag handle, purely decorative since the sheet
-                    // isn't draggable in this implementation.
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .width(32.dp)
-                            .height(4.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    .copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(2.dp),
-                            ),
-                    )
+                        .align(Alignment.CenterHorizontally)
+                        .width(32.dp)
+                        .height(4.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                .copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(2.dp),
+                        ),
+                )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Filter trips",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = { spec = TripFilterSpec() },
+                        enabled = spec.isActive,
+                    ) {
+                        Text("Reset")
+                    }
+                }
+
+                FilterSection(label = "Dates") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DateField(
+                            label = "From",
+                            millis = spec.startDateFrom,
+                            modifier = Modifier.weight(1f),
+                            onClick = { showStartDatePicker = true },
+                        )
+                        DateField(
+                            label = "To",
+                            millis = spec.startDateTo,
+                            modifier = Modifier.weight(1f),
+                            onClick = { showEndDatePicker = true },
+                        )
+                    }
+                }
+
+                FilterSection(label = "Route") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CompactField(
+                            value = spec.startPostalContains,
+                            onValueChange = {
+                                spec = spec.copy(startPostalContains = it)
+                            },
+                            label = "Start postal",
+                            modifier = Modifier.weight(1f),
+                        )
+                        CompactField(
+                            value = spec.endPostalContains,
+                            onValueChange = {
+                                spec = spec.copy(endPostalContains = it)
+                            },
+                            label = "End postal",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                FilterSection(label = "Vehicle & distance") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CompactField(
+                            value = spec.licensePlateContains,
+                            onValueChange = {
+                                spec = spec.copy(licensePlateContains = it)
+                            },
+                            label = "Plate",
+                            modifier = Modifier.weight(1.2f),
+                        )
+                        CompactNumberField(
+                            value = spec.minDistanceKm,
+                            onValueChange = { spec = spec.copy(minDistanceKm = it) },
+                            label = "Min km",
+                            modifier = Modifier.weight(1f),
+                        )
+                        CompactNumberField(
+                            value = spec.maxDistanceKm,
+                            onValueChange = { spec = spec.copy(maxDistanceKm = it) },
+                            label = "Max km",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                FilterSection(label = "Category") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = "Filter trips",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            onClick = { spec = TripFilterSpec() },
-                            enabled = spec.isActive,
-                        ) {
-                            Text("Reset")
-                        }
-                    }
-
-                    FilterSection(label = "Dates") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            DateField(
-                                label = "From",
-                                millis = spec.startDateFrom,
-                                modifier = Modifier.weight(1f),
-                                onClick = { showStartDatePicker = true },
-                            )
-                            DateField(
-                                label = "To",
-                                millis = spec.startDateTo,
-                                modifier = Modifier.weight(1f),
-                                onClick = { showEndDatePicker = true },
-                            )
-                        }
-                    }
-
-                    FilterSection(label = "Route") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CompactField(
-                                value = spec.startPostalContains,
-                                onValueChange = {
-                                    spec = spec.copy(startPostalContains = it)
-                                },
-                                label = "Start postal",
-                                modifier = Modifier.weight(1f),
-                            )
-                            CompactField(
-                                value = spec.endPostalContains,
-                                onValueChange = {
-                                    spec = spec.copy(endPostalContains = it)
-                                },
-                                label = "End postal",
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-
-                    FilterSection(label = "Vehicle & distance") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CompactField(
-                                value = spec.licensePlateContains,
-                                onValueChange = {
-                                    spec = spec.copy(licensePlateContains = it)
-                                },
-                                label = "Plate",
-                                modifier = Modifier.weight(1.2f),
-                            )
-                            CompactNumberField(
-                                value = spec.minDistanceKm,
-                                onValueChange = {
-                                    spec = spec.copy(minDistanceKm = it)
-                                },
-                                label = "Min km",
-                                modifier = Modifier.weight(1f),
-                            )
-                            CompactNumberField(
-                                value = spec.maxDistanceKm,
-                                onValueChange = {
-                                    spec = spec.copy(maxDistanceKm = it)
-                                },
-                                label = "Max km",
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-
-                    FilterSection(label = "Category") {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                CategoryChip("Both", spec.privateOnly == null) {
-                                    spec = spec.copy(privateOnly = null)
-                                }
-                                CategoryChip("Private", spec.privateOnly == true) {
-                                    spec = spec.copy(privateOnly = true)
-                                }
-                                CategoryChip("Business", spec.privateOnly == false) {
-                                    spec = spec.copy(privateOnly = false)
-                                }
-                            }
-                            Text(
-                                text = "Drafts",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Switch(
-                                checked = spec.includeDrafts,
-                                onCheckedChange = {
-                                    spec = spec.copy(includeDrafts = it)
-                                },
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("Cancel")
+                            CategoryChip("Both", spec.privateOnly == null) {
+                                spec = spec.copy(privateOnly = null)
+                            }
+                            CategoryChip("Private", spec.privateOnly == true) {
+                                spec = spec.copy(privateOnly = true)
+                            }
+                            CategoryChip("Business", spec.privateOnly == false) {
+                                spec = spec.copy(privateOnly = false)
+                            }
                         }
-                        Button(
-                            onClick = { onApply(spec) },
-                            modifier = Modifier.weight(2f),
-                        ) {
-                            Text("Apply")
-                        }
+                        Text(
+                            text = "Drafts",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Switch(
+                            checked = spec.includeDrafts,
+                            onCheckedChange = { spec = spec.copy(includeDrafts = it) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = { onApply(spec) },
+                        modifier = Modifier.weight(2f),
+                    ) {
+                        Text("Apply")
                     }
                 }
             }
