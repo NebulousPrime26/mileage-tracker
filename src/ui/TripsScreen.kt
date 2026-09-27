@@ -102,7 +102,8 @@ private data class TripFilterSpec(
     val minDistanceKm: Double? = null,
     val maxDistanceKm: Double? = null,
     val privateOnly: Boolean? = null,
-    val includeDrafts: Boolean = false,
+    // Drafts are shown by default. Turning this off hides them.
+    val hideDrafts: Boolean = false,
 ) {
     val isActive: Boolean
         get() = startDateFrom != null ||
@@ -113,7 +114,7 @@ private data class TripFilterSpec(
             minDistanceKm != null ||
             maxDistanceKm != null ||
             privateOnly != null ||
-            includeDrafts
+            hideDrafts
 
     val activeCount: Int
         get() = listOf(
@@ -125,12 +126,12 @@ private data class TripFilterSpec(
             minDistanceKm != null,
             maxDistanceKm != null,
             privateOnly != null,
-            includeDrafts,
+            hideDrafts,
         ).count { it }
 }
 
 private fun List<Trip>.applyFilter(spec: TripFilterSpec): List<Trip> = filter { trip ->
-    (spec.includeDrafts || !trip.isDraft) &&
+    (!spec.hideDrafts || !trip.isDraft) &&
         (spec.startDateFrom == null || trip.startDate >= spec.startDateFrom) &&
         (spec.startDateTo == null || trip.startDate <= spec.startDateTo) &&
         (spec.startPostalContains.isBlank() ||
@@ -565,13 +566,13 @@ private fun FilterSheetOverlay(
                             ) { spec = spec.copy(privateOnly = false) }
                         }
                         Text(
-                            text = stringResource(R.string.filter_drafts),
+                            text = stringResource(R.string.filter_hide_drafts),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Switch(
-                            checked = spec.includeDrafts,
-                            onCheckedChange = { spec = spec.copy(includeDrafts = it) },
+                            checked = spec.hideDrafts,
+                            onCheckedChange = { spec = spec.copy(hideDrafts = it) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -593,10 +594,7 @@ private fun FilterSheetOverlay(
                         onClick = { onApply(spec) },
                         modifier = Modifier.weight(2f),
                     ) {
-                        // "Apply" wasn't in the original set of strings; add a resource
-                        // for it or reuse an existing one. Using the plain English here
-                        // as a placeholder since the resource doesn't exist yet.
-                        Text("Apply")
+                        Text(stringResource(R.string.filter_apply))
                     }
                 }
             }

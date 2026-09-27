@@ -52,8 +52,9 @@
     <string name="filter_category_both">Both</string>
     <string name="filter_category_private">Private</string>
     <string name="filter_category_business">Business</string>
-    <string name="filter_drafts">Drafts</string>
     <string name="filter_apply">Apply</string>
+    <string name="filter_drafts">Drafts</string>
+    <string name="filter_hide_drafts">Hide drafts</string>
 
     <!-- Trip entry -->
     <string name="entry_title_new">New trip</string>
