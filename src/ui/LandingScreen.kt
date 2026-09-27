@@ -33,9 +33,6 @@ fun LandingScreen(
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val busy = backupState is TripViewModel.BackupState.Working
 
-    // SAF picker for choosing a backup file to import. Using */* because
-    // .mlgbak is a custom extension the system can't map to a MIME type;
-    // the wrong-file case is caught by the decryption step.
     val importPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
@@ -111,10 +108,15 @@ fun LandingScreen(
         }
     }
 
-    // ── Backup dialogs, driven by the ViewModel's state machine ─────
     when (val state = backupState) {
-        is TripViewModel.BackupState.Exported -> ExportKeyDialog(
+        is TripViewModel.BackupState.ExportPreview -> ExportKeyDialog(
             key = state.key,
+            filename = state.filename,
+            onConfirm = { viewModel.confirmExport() },
+            onCancel = { viewModel.cancelExport() },
+        )
+
+        is TripViewModel.BackupState.Exported -> ExportDoneDialog(
             filename = state.filename,
             onDismiss = { viewModel.dismissBackupState() },
         )
