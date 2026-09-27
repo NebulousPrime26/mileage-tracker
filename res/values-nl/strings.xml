@@ -52,8 +52,9 @@
     <string name="filter_category_both">Beide</string>
     <string name="filter_category_private">Privé</string>
     <string name="filter_category_business">Zakelijk</string>
-    <string name="filter_drafts">Concepten</string>
     <string name="filter_apply">Toepassen</string>
+    <string name="filter_drafts">Concepten</string>
+    <string name="filter_hide_drafts">Concepten verbergen</string>
 
     <!-- Trip entry -->
     <string name="entry_title_new">Nieuwe rit</string>

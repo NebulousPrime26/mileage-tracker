@@ -211,6 +211,8 @@ fun TripEntryScreen(
         else -> null
     }
 
+    // Full save requires every field. Draft save only requires that
+    // something has been typed — the plate, or any other field.
     val canSave = licensePlate.isNotBlank() &&
         startPostalCode.isNotBlank() &&
         endPostalCode.isNotBlank() &&
@@ -221,9 +223,9 @@ fun TripEntryScreen(
         conflictingTrip == null &&
         chronologyError == null
 
-    val hasDraftContent = startPostalCode.isNotBlank() ||
+    val hasDraftContent = licensePlate.isNotBlank() ||
+        startPostalCode.isNotBlank() ||
         endPostalCode.isNotBlank() ||
-        licensePlate.isNotBlank() ||
         startMileageText.isNotBlank() ||
         endMileageText.isNotBlank() ||
         notes.isNotBlank()
@@ -374,7 +376,6 @@ fun TripEntryScreen(
                     onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
                     label = { Text(stringResource(R.string.entry_license_plate)) },
                     singleLine = true,
-                    isError = licensePlate.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Characters,
                     ),
