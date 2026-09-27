@@ -6,12 +6,26 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.annotation.StringRes
+import com.nebulousprime26.mileage_tracker.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/**
+ * Thrown when a backup operation fails. Carries a string resource ID
+ * (and any format arguments) so the caller can resolve the message
+ * against the active locale.
+ */
+class BackupException(
+    @StringRes val messageRes: Int,
+    vararg val formatArgs: Any,
+) : Exception() {
+    val args: Array<out Any> = formatArgs
+}
 
 /**
  * Serializes trips to JSON and reads/writes the encrypted backup file
@@ -38,8 +52,11 @@ object TripBackup {
     fun deserializeTrips(json: ByteArray): List<Trip> {
         val root = JSONObject(String(json, Charsets.UTF_8))
         val version = root.optInt("formatVersion", 1)
-        require(version <= JSON_FORMAT_VERSION) {
-            "Backup was made with a newer version of the app (format $version)."
+        if (version > JSON_FORMAT_VERSION) {
+            throw BackupException(
+                R.string.backup_error_newer_format,
+                version,
+            )
         }
         val arr = root.getJSONArray("trips")
         return (0 until arr.length()).map { arr.getJSONObject(it).toTrip() }
@@ -95,11 +112,11 @@ object TripBackup {
             put(MediaStore.Downloads.IS_PENDING, 1)
         }
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            ?: error("Could not create file in Downloads")
+            ?: throw BackupException(R.string.backup_error_downloads_create)
 
         try {
             resolver.openOutputStream(uri)?.use { it.write(bytes) }
-                ?: error("Could not open Downloads file for writing")
+                ?: throw BackupException(R.string.backup_error_downloads_open)
         } finally {
             values.clear()
             values.put(MediaStore.Downloads.IS_PENDING, 0)

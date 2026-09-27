@@ -23,9 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.data.AppLanguage
 import com.nebulousprime26.mileage_tracker.data.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +39,7 @@ fun SettingsScreen(
 ) {
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val appLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
     val postalFirst by viewModel.postalFirst.collectAsStateWithLifecycle()
     val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
     val roundTripAssumption by viewModel.roundTripAssumption.collectAsStateWithLifecycle()
@@ -45,9 +49,11 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = onBack) {
+                        Text(stringResource(R.string.common_back))
+                    }
                 },
             )
         },
@@ -62,7 +68,7 @@ fun SettingsScreen(
         ) {
             // ── Appearance ───────────────────────────────────────────
             Text(
-                text = "Appearance",
+                text = stringResource(R.string.settings_section_appearance),
                 style = MaterialTheme.typography.titleMedium,
             )
 
@@ -73,29 +79,42 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // ── Language ─────────────────────────────────────────────
+            Text(
+                text = stringResource(R.string.settings_section_language),
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            LanguageSelector(
+                selected = appLanguage,
+                onSelect = { viewModel.setAppLanguage(it) },
+            )
+
+            HorizontalDivider()
+
             // ── Positions ────────────────────────────────────────────
             Text(
-                text = "Positions",
+                text = stringResource(R.string.settings_section_positions),
                 style = MaterialTheme.typography.titleMedium,
             )
 
             PositionSetting(
-                title = "Add Trip button",
-                explanation = "Where the floating button sits on the Trips screen.",
+                title = stringResource(R.string.settings_add_trip_button),
+                explanation = stringResource(R.string.settings_add_trip_button_desc),
                 isRight = fabOnRight,
                 onToggle = { viewModel.setFabOnRight(it) },
             )
 
             PositionSetting(
-                title = "Postal Code group",
-                explanation = "Which side of the trip entry form the postal codes appear on, relative to mileage.",
+                title = stringResource(R.string.settings_postal_group),
+                explanation = stringResource(R.string.settings_postal_group_desc),
                 isRight = !postalFirst,
                 onToggle = { viewModel.setPostalFirst(!it) },
             )
 
             PositionSetting(
-                title = "Save Draft button",
-                explanation = "Which side of the trip entry form the draft button appears on, relative to save.",
+                title = stringResource(R.string.settings_draft_button),
+                explanation = stringResource(R.string.settings_draft_button_desc),
                 isRight = !draftLeft,
                 onToggle = { viewModel.setDraftLeft(!it) },
             )
@@ -104,26 +123,26 @@ fun SettingsScreen(
 
             // ── Behaviour ────────────────────────────────────────────
             Text(
-                text = "Behaviour",
+                text = stringResource(R.string.settings_section_behaviour),
                 style = MaterialTheme.typography.titleMedium,
             )
 
             ToggleSetting(
-                title = "Assume round trips",
-                explanation = "When adding a trip, pre-fill the end postal code with where the previous trip started.",
+                title = stringResource(R.string.settings_round_trips),
+                explanation = stringResource(R.string.settings_round_trips_desc),
                 checked = roundTripAssumption,
                 onToggle = { viewModel.setRoundTripAssumption(it) },
             )
 
             ToggleSetting(
-                title = "Auto-fill end time",
-                explanation = "When adding a trip, set the end time to now as soon as the end mileage is entered.",
+                title = stringResource(R.string.settings_auto_fill_end_time),
+                explanation = stringResource(R.string.settings_auto_fill_end_time_desc),
                 checked = autoFillEndTime,
                 onToggle = { viewModel.setAutoFillEndTime(it) },
             )
 
             ToggleSetting(
-                title = "Allow spaces in postal codes",
+                title = stringResource(R.string.settings_allow_spaces),
                 explanation = null,
                 checked = allowSpacesInPostal,
                 onToggle = { viewModel.setAllowSpacesInPostal(it) },
@@ -134,12 +153,6 @@ fun SettingsScreen(
     }
 }
 
-/**
- * A single row showing "Title    Left [Switch] Right" with the toggle
- * cluster right-aligned, and an explanation beneath. The active side's
- * label is drawn in the primary colour so the state reads without
- * having to interpret the switch itself.
- */
 @Composable
 private fun PositionSetting(
     title: String,
@@ -161,7 +174,7 @@ private fun PositionSetting(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "Left",
+                text = stringResource(R.string.settings_position_left),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isRight) {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -175,7 +188,7 @@ private fun PositionSetting(
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             Text(
-                text = "Right",
+                text = stringResource(R.string.settings_position_right),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isRight) {
                     MaterialTheme.colorScheme.primary
@@ -192,11 +205,6 @@ private fun PositionSetting(
     }
 }
 
-/**
- * A simple on/off setting: the title on the left, the switch on the
- * right, and an optional explanation line below. Pass null for the
- * explanation when the title is self-explanatory.
- */
 @Composable
 private fun ToggleSetting(
     title: String,
@@ -243,11 +251,13 @@ private fun ThemeModeSelector(
             .selectableGroup(),
     ) {
         ThemeMode.entries.forEach { mode ->
-            val label = when (mode) {
-                ThemeMode.SYSTEM -> "Follow system"
-                ThemeMode.LIGHT -> "Light"
-                ThemeMode.DARK -> "Dark"
-            }
+            val label = stringResource(
+                when (mode) {
+                    ThemeMode.SYSTEM -> R.string.settings_theme_system
+                    ThemeMode.LIGHT -> R.string.settings_theme_light
+                    ThemeMode.DARK -> R.string.settings_theme_dark
+                }
+            )
 
             Row(
                 modifier = Modifier
@@ -260,10 +270,48 @@ private fun ThemeModeSelector(
                     .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(
-                    selected = mode == selected,
-                    onClick = null,
+                RadioButton(selected = mode == selected, onClick = null)
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 12.dp),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageSelector(
+    selected: AppLanguage,
+    onSelect: (AppLanguage) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup(),
+    ) {
+        AppLanguage.entries.forEach { language ->
+            val label = stringResource(
+                when (language) {
+                    AppLanguage.SYSTEM -> R.string.settings_language_system
+                    AppLanguage.ENGLISH -> R.string.settings_language_english
+                    AppLanguage.DUTCH -> R.string.settings_language_dutch
+                }
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = language == selected,
+                        onClick = { onSelect(language) },
+                        role = Role.RadioButton,
+                    )
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = language == selected, onClick = null)
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyLarge,

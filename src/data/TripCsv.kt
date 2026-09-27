@@ -3,6 +3,7 @@ package com.nebulousprime26.mileage_tracker.data
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.nebulousprime26.mileage_tracker.R
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -17,20 +18,40 @@ object TripCsv {
 
     private const val MIME = "text/csv"
 
+    // ISO-style, locale-independent: unambiguous when opened in any tool,
+    // and sortable as plain text.
     private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT)
     private val filenameFormat = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT)
 
     /**
      * Serializes [trips] to CSV. Rows are sorted by start time ascending,
      * and each row is prefixed with its position in that ordering.
+     *
+     * Takes a [Context] so the column headers and the Yes/No values for
+     * the Private column are resolved against the app's active locale.
      */
-    fun build(trips: List<Trip>): String {
+    fun build(context: Context, trips: List<Trip>): String {
         val sb = StringBuilder()
-        sb.append(
-            "Ride #,Start,End,Start postal,End postal,License plate," +
-                "Start mileage,End mileage,Distance (km),Private,Notes"
+
+        // Column headers
+        val headers = listOf(
+            context.getString(R.string.csv_header_ride),
+            context.getString(R.string.csv_header_start),
+            context.getString(R.string.csv_header_end),
+            context.getString(R.string.csv_header_start_postal),
+            context.getString(R.string.csv_header_end_postal),
+            context.getString(R.string.csv_header_license_plate),
+            context.getString(R.string.csv_header_start_mileage),
+            context.getString(R.string.csv_header_end_mileage),
+            context.getString(R.string.csv_header_distance_km),
+            context.getString(R.string.csv_header_private),
+            context.getString(R.string.csv_header_notes),
         )
+        sb.append(headers.joinToString(","))
         sb.append('\n')
+
+        val yes = context.getString(R.string.csv_yes)
+        val no = context.getString(R.string.csv_no)
 
         trips
             .sortedBy { it.startDate }
@@ -44,7 +65,7 @@ object TripCsv {
                 sb.append(formatNumber(trip.startMileage)).append(',')
                 sb.append(formatNumber(trip.endMileage)).append(',')
                 sb.append(formatNumber(trip.distanceMileage)).append(',')
-                sb.append(if (trip.privateUse) "Yes" else "No").append(',')
+                sb.append(if (trip.privateUse) escape(yes) else escape(no)).append(',')
                 sb.append(escape(trip.notes))
                 sb.append('\n')
             }
@@ -54,9 +75,7 @@ object TripCsv {
 
     /**
      * Writes [content] to a cache file and returns a content:// URI
-     * suitable for an `ACTION_SEND` intent. The cache is used rather
-     * than Downloads because the file is transient — the receiving app
-     * reads it once and the system cleans it up when space is needed.
+     * suitable for an `ACTION_SEND` intent.
      */
     fun writeToCache(context: Context, filename: String, content: String): Uri {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }

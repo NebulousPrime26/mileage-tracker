@@ -44,9 +44,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.data.Trip
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
@@ -58,11 +60,6 @@ import java.util.TimeZone
 private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
 
-/**
- * Normalises a postal code fragment: uppercase, and strip whitespace
- * unless the user has opted in to allowing spaces via Settings. Used
- * directly in the onValueChange callbacks for the postal fields.
- */
 private fun sanitizePostalCode(input: String, allowSpaces: Boolean): String {
     val withoutSpaces = if (allowSpaces) input else input.filterNot { it.isWhitespace() }
     return withoutSpaces.uppercase(Locale.ROOT)
@@ -117,7 +114,6 @@ fun TripEntryScreen(
         mutableStateOf(existingTrip?.endDate ?: System.currentTimeMillis())
     }
 
-    // Seed new trips from the last completed trip.
     LaunchedEffect(
         existingTrip?.id,
         defaultStartMileage,
@@ -141,11 +137,6 @@ fun TripEntryScreen(
         }
     }
 
-    // When adding a new trip, filling in the end mileage marks the moment
-    // the trip ended, so the end time is bumped to now. The transition is
-    // detected on the blank → non-blank edge, and the whole effect is
-    // skipped for edits and when the user has disabled the auto-fill in
-    // Settings, so an existing trip's saved end time is never overwritten.
     var lastEndMileageWasBlank by remember(existingTrip?.id) {
         mutableStateOf(endMileageText.isBlank())
     }
@@ -165,7 +156,7 @@ fun TripEntryScreen(
     // ── Validation ───────────────────────────────────────────────────
 
     val dateOrderError: String? = if (endDateMillis < startDateMillis) {
-        "End date & time can't be before the start."
+        stringResource(R.string.entry_error_date_order)
     } else {
         null
     }
@@ -204,14 +195,18 @@ fun TripEntryScreen(
         startMileage == null || endMileage == null || endMileage < startMileage -> null
 
         earlierTrip != null && startMileage < earlierTrip.endMileage ->
-            "Start mileage can't be below ${mileageFormatter.format(earlierTrip.endMileage)} km: " +
-                "the trip on ${shortDateFormatter.format(Date(earlierTrip.startDate))} " +
-                "already ended there."
+            stringResource(
+                R.string.entry_error_chronology_start,
+                mileageFormatter.format(earlierTrip.endMileage),
+                shortDateFormatter.format(Date(earlierTrip.startDate)),
+            )
 
         laterTrip != null && endMileage > laterTrip.startMileage ->
-            "End mileage can't exceed ${mileageFormatter.format(laterTrip.startMileage)} km: " +
-                "the trip on ${shortDateFormatter.format(Date(laterTrip.startDate))} " +
-                "already starts there."
+            stringResource(
+                R.string.entry_error_chronology_end,
+                mileageFormatter.format(laterTrip.startMileage),
+                shortDateFormatter.format(Date(laterTrip.startDate)),
+            )
 
         else -> null
     }
@@ -233,9 +228,6 @@ fun TripEntryScreen(
         notes.isNotBlank()
     val canSaveDraft = hasDraftContent
 
-    // Local composable lambdas so the postal/mileage groups can be
-    // reordered based on the user's layout preference without
-    // duplicating all of the field wiring.
     val postalGroup: @Composable (Modifier) -> Unit = { modifier ->
         VerticalFieldGroup(modifier = modifier) {
             OutlinedTextField(
@@ -243,7 +235,7 @@ fun TripEntryScreen(
                 onValueChange = {
                     startPostalCode = sanitizePostalCode(it, allowSpacesInPostal)
                 },
-                label = { Text("Start postal") },
+                label = { Text(stringResource(R.string.entry_start_postal)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
@@ -255,7 +247,7 @@ fun TripEntryScreen(
                 onValueChange = {
                     endPostalCode = sanitizePostalCode(it, allowSpacesInPostal)
                 },
-                label = { Text("End postal") },
+                label = { Text(stringResource(R.string.entry_end_postal)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
@@ -270,7 +262,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = startMileageText,
                 onValueChange = { startMileageText = it },
-                label = { Text("Start mileage") },
+                label = { Text(stringResource(R.string.entry_start_mileage)) },
                 singleLine = true,
                 isError = conflictingTrip != null || chronologyError != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -279,7 +271,7 @@ fun TripEntryScreen(
             OutlinedTextField(
                 value = endMileageText,
                 onValueChange = { endMileageText = it },
-                label = { Text("End mileage") },
+                label = { Text(stringResource(R.string.entry_end_mileage)) },
                 singleLine = true,
                 isError = conflictingTrip != null || chronologyError != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -288,7 +280,6 @@ fun TripEntryScreen(
         }
     }
 
-    // Same trick for the two action buttons.
     val draftButton: @Composable (Modifier) -> Unit = { modifier ->
         OutlinedButton(
             onClick = {
@@ -312,8 +303,10 @@ fun TripEntryScreen(
             modifier = modifier,
         ) {
             Text(
-                if (existingTrip?.isDraft == true) "Update draft"
-                else "Save as draft"
+                stringResource(
+                    if (existingTrip?.isDraft == true) R.string.entry_update_draft
+                    else R.string.entry_save_draft
+                )
             )
         }
     }
@@ -341,18 +334,29 @@ fun TripEntryScreen(
             modifier = modifier,
         ) {
             Text(
-                when {
-                    !isEditing -> "Save trip"
-                    existingTrip.isDraft -> "Complete trip"
-                    else -> "Save changes"
-                }
+                stringResource(
+                    when {
+                        !isEditing -> R.string.entry_save
+                        existingTrip.isDraft -> R.string.entry_complete_trip
+                        else -> R.string.entry_save_changes
+                    }
+                )
             )
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(if (isEditing) "Edit trip" else "New trip") })
+            TopAppBar(
+                title = {
+                    Text(
+                        stringResource(
+                            if (isEditing) R.string.entry_title_edit
+                            else R.string.entry_title_new
+                        )
+                    )
+                },
+            )
         },
     ) { padding ->
         Column(
@@ -363,12 +367,11 @@ fun TripEntryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // ── Vehicle ──────────────────────────────────────────────
             HorizontalFieldGroup {
                 OutlinedTextField(
                     value = licensePlate,
                     onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
-                    label = { Text("License plate") },
+                    label = { Text(stringResource(R.string.entry_license_plate)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Characters,
@@ -379,7 +382,7 @@ fun TripEntryScreen(
                 FilterChip(
                     selected = privateUse,
                     onClick = { privateUse = !privateUse },
-                    label = { Text("Private") },
+                    label = { Text(stringResource(R.string.entry_private)) },
                     leadingIcon = if (privateUse) {
                         {
                             Icon(
@@ -391,10 +394,9 @@ fun TripEntryScreen(
                 )
             }
 
-            // ── Dates ────────────────────────────────────────────────
             HorizontalFieldGroup {
                 DateTimePickerField(
-                    label = "Start",
+                    label = stringResource(R.string.entry_start),
                     value = startDateMillis,
                     onValueChange = { startDateMillis = it },
                     compact = true,
@@ -402,7 +404,7 @@ fun TripEntryScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 DateTimePickerField(
-                    label = "End",
+                    label = stringResource(R.string.entry_end),
                     value = endDateMillis,
                     onValueChange = { endDateMillis = it },
                     compact = true,
@@ -414,7 +416,6 @@ fun TripEntryScreen(
                 SectionError(dateOrderError)
             }
 
-            // ── Postal and mileage, order controlled by preference ───
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -429,42 +430,41 @@ fun TripEntryScreen(
             }
 
             if (startMileage != null && endMileage != null && endMileage < startMileage) {
-                SectionError("End mileage must be greater than or equal to start mileage")
+                SectionError(stringResource(R.string.entry_error_mileage_order))
             }
             if (conflictingTrip != null) {
                 SectionError(
-                    "Mileage range overlaps an existing trip " +
-                        "(${mileageFormatter.format(conflictingTrip.startMileage)}–" +
-                        "${mileageFormatter.format(conflictingTrip.endMileage)} km " +
-                        "on ${shortDateFormatter.format(Date(conflictingTrip.startDate))})"
+                    stringResource(
+                        R.string.entry_error_conflict,
+                        mileageFormatter.format(conflictingTrip.startMileage),
+                        mileageFormatter.format(conflictingTrip.endMileage),
+                        shortDateFormatter.format(Date(conflictingTrip.startDate)),
+                    )
                 )
             }
             if (chronologyError != null) {
                 SectionError(chronologyError)
             }
 
-            // ── Notes ────────────────────────────────────────────────
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.entry_notes)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
 
             if (!canSave) {
                 Text(
-                    text = if (hasDraftContent) {
-                        "Fill in all required fields to save, or save as a draft."
-                    } else {
-                        "Fill in the fields above to save."
-                    },
+                    text = stringResource(
+                        if (hasDraftContent) R.string.entry_hint_required
+                        else R.string.entry_hint_empty
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            // ── Actions, order controlled by preference ──────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -480,12 +480,11 @@ fun TripEntryScreen(
                 }
             }
 
-            // ── Cancel ───────────────────────────────────────────────
             TextButton(
                 onClick = onCancel,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     }
@@ -604,12 +603,12 @@ private fun DateTimePickerField(
                         if (pendingDateUtcMillis != null) showTimePicker = true
                     },
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             },
         ) {
@@ -632,7 +631,7 @@ private fun DateTimePickerField(
                 pendingDateUtcMillis = null
                 showTimePicker = false
             },
-            title = { Text("Select time") },
+            title = { Text(stringResource(R.string.entry_select_time)) },
             text = {
                 Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     TimePicker(state = timePickerState)
@@ -659,7 +658,7 @@ private fun DateTimePickerField(
                         showTimePicker = false
                     },
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             },
             dismissButton = {
@@ -669,7 +668,7 @@ private fun DateTimePickerField(
                         showTimePicker = false
                     },
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             },
         )

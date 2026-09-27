@@ -4,6 +4,9 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.data.AppLanguage
+import com.nebulousprime26.mileage_tracker.data.BackupException
 import com.nebulousprime26.mileage_tracker.data.SettingsRepository
 import com.nebulousprime26.mileage_tracker.data.ThemeMode
 import com.nebulousprime26.mileage_tracker.data.Trip
@@ -68,6 +71,20 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     private val dao: TripDao = getDatabase(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
+
+    /**
+     * Resolves a throwable into a user-facing message in the active
+     * locale. [BackupException] carries a resource ID and arguments;
+     * other throwables fall back to their own message, and if even that
+     * is missing a generic failure string is used.
+     */
+    private fun resolveMessage(t: Throwable, fallbackRes: Int): String {
+        val app = getApplication<Application>()
+        return when (t) {
+            is BackupException -> app.getString(t.messageRes, *t.args)
+            else -> t.message ?: app.getString(fallbackRes)
+        }
+    }
 
     // ── Trip data ────────────────────────────────────────────────────
 
@@ -135,6 +152,17 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settingsRepo.setThemeMode(mode) }
+    }
+
+    val appLanguage: StateFlow<AppLanguage> = settingsRepo.appLanguage
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AppLanguage.SYSTEM,
+        )
+
+    fun setAppLanguage(language: AppLanguage) {
+        viewModelScope.launch { settingsRepo.setAppLanguage(language) }
     }
 
     val postalFirst: StateFlow<Boolean> = settingsRepo.postalFirst
@@ -310,7 +338,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             } catch (t: Throwable) {
                 pendingExport = null
                 _backupState.value = BackupState.Failed(
-                    t.message ?: "Export failed",
+                    resolveMessage(t, R.string.backup_error_export_failed)
                 )
             }
         }
@@ -322,7 +350,10 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun confirmExport() {
         val pending = pendingExport ?: run {
-            _backupState.value = BackupState.Failed("Nothing to export.")
+            _backupState.value = BackupState.Failed(
+                getApplication<Application>()
+                    .getString(R.string.backup_error_nothing_to_export)
+            )
             return
         }
         viewModelScope.launch {
@@ -338,7 +369,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             } catch (t: Throwable) {
                 pendingExport = null
                 _backupState.value = BackupState.Failed(
-                    t.message ?: "Export failed",
+                    resolveMessage(t, R.string.backup_error_export_failed)
                 )
             }
         }
@@ -376,26 +407,21 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         val pending = _backupState.value as? BackupState.ImportConfirming ?: return
         viewModelScope.launch {
             _backupState.value = BackupState.Working
+            val app = getApplication<Application>()
             try {
                 val key = TripCrypto.parseKey(pending.key)
-                    ?: throw IllegalArgumentException(
-                        "The key isn't a valid 64-character hex string."
-                    )
-                val bytes = getApplication<Application>().contentResolver
+                    ?: throw BackupException(R.string.backup_error_invalid_key)
+                val bytes = app.contentResolver
                     .openInputStream(pending.uri)?.use { it.readBytes() }
-                    ?: throw IllegalStateException(
-                        "Could not read the selected file."
-                    )
+                    ?: throw BackupException(R.string.backup_error_read_file)
                 val json = TripCrypto.decrypt(bytes, key)
-                    ?: throw IllegalStateException(
-                        "Could not decrypt — the key is wrong or the file is damaged."
-                    )
+                    ?: throw BackupException(R.string.backup_error_decrypt)
                 val importedTrips = TripBackup.deserializeTrips(json)
                 dao.replaceAll(importedTrips)
                 _backupState.value = BackupState.Imported(importedTrips.size)
             } catch (t: Throwable) {
                 _backupState.value = BackupState.Failed(
-                    t.message ?: "Import failed",
+                    resolveMessage(t, R.string.backup_error_import_failed)
                 )
             }
         }
@@ -422,19 +448,22 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun shareTripsAsCsv() {
         viewModelScope.launch {
+            val app = getApplication<Application>()
             try {
                 val allTrips = dao.getAll().first()
                 if (allTrips.isEmpty()) {
-                    _backupState.value = BackupState.Failed("No trips to share.")
+                    _backupState.value = BackupState.Failed(
+                        app.getString(R.string.backup_error_no_trips)
+                    )
                     return@launch
                 }
-                val csv = TripCsv.build(allTrips)
+                val csv = TripCsv.build(app, allTrips)
                 val filename = TripCsv.defaultFilename()
-                val uri = TripCsv.writeToCache(getApplication(), filename, csv)
+                val uri = TripCsv.writeToCache(app, filename, csv)
                 _shareUri.value = uri
             } catch (t: Throwable) {
                 _backupState.value = BackupState.Failed(
-                    t.message ?: "Could not prepare the CSV."
+                    resolveMessage(t, R.string.backup_error_prepare_csv)
                 )
             }
         }
