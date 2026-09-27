@@ -12,8 +12,8 @@
     <!-- Landing -->
     <string name="landing_continue">Doorgaan</string>
     <string name="landing_settings">Instellingen</string>
-    <string name="landing_import">Importeren</string>
-    <string name="landing_export">Exporteren</string>
+    <string name="landing_import">Importeer</string>
+    <string name="landing_export">Exporteer</string>
     <string name="landing_share">Delen</string>
 
     <!-- Trips screen -->
@@ -22,7 +22,7 @@
     <string name="trips_add">Nieuwe rit</string>
     <string name="trips_filter">Filter</string>
     <string name="trips_filter_with_count">Filter (%1$d)</string>
-    <string name="trips_empty">Nog geen ritten.\nTik op \"Nieuwe rit\" om er een toe te voegen.</string>
+    <string name="trips_empty">Nog geen ritten.\nTik op \"Nieuwe rit\" om er één toe te voegen.</string>
     <string name="trips_filter_empty">Geen ritten die bij het filter passen.</string>
     <string name="trips_none">Geen ritten.</string>
     <string name="trips_delete">Verwijderen</string>
@@ -44,8 +44,8 @@
     <string name="filter_from">Van</string>
     <string name="filter_to">Tot</string>
     <string name="filter_any">Alle</string>
-    <string name="filter_start_postal">Startpostcode</string>
-    <string name="filter_end_postal">Eindpostcode</string>
+    <string name="filter_start_postal">Start postcode</string>
+    <string name="filter_end_postal">Eind postcode</string>
     <string name="filter_plate">Kenteken</string>
     <string name="filter_min_km">Min. km</string>
     <string name="filter_max_km">Max. km</string>
@@ -60,10 +60,10 @@
     <string name="entry_title_edit">Rit bewerken</string>
     <string name="entry_license_plate">Kenteken</string>
     <string name="entry_private">Privé</string>
-    <string name="entry_start">Start</string>
-    <string name="entry_end">Einde</string>
-    <string name="entry_start_postal">Startpostcode</string>
-    <string name="entry_end_postal">Eindpostcode</string>
+    <string name="entry_start">Starttijd</string>
+    <string name="entry_end">Eindtijd</string>
+    <string name="entry_start_postal">Start postcode</string>
+    <string name="entry_end_postal">Eind postcode</string>
     <string name="entry_start_mileage">Beginstand</string>
     <string name="entry_end_mileage">Eindstand</string>
     <string name="entry_notes">Notities (optioneel)</string>
@@ -91,10 +91,10 @@
     <string name="stats_legend_private">Privé</string>
     <string name="stats_legend_business">Zakelijk</string>
     <string name="stats_legend_total">Totaal</string>
-    <string name="stats_toggle_incremental">Per periode</string>
+    <string name="stats_toggle_incremental">Incrementeel</string>
     <string name="stats_toggle_cumulative">Cumulatief</string>
     <string name="stats_toggle_sum">Som</string>
-    <string name="stats_toggle_average">Gemiddelde</string>
+    <string name="stats_toggle_average">Gemiddeld</string>
     <string name="stats_breakdown">Jaarlijks overzicht</string>
     <string name="stats_table_year">Jaar</string>
     <string name="stats_table_all">Alle</string>
@@ -124,7 +124,7 @@
     <string name="settings_position_right">Rechts</string>
     <string name="settings_section_behaviour">Gedrag</string>
     <string name="settings_round_trips">Retourritten aannemen</string>
-    <string name="settings_round_trips_desc">Vul bij een nieuwe rit de eindpostcode alvast in met waar de vorige rit begon.</string>
+    <string name="settings_round_trips_desc">Vul bij een nieuwe rit de eind postcode alvast in met waar de vorige rit begon.</string>
     <string name="settings_auto_fill_end_time">Eindtijd automatisch invullen</string>
     <string name="settings_auto_fill_end_time_desc">Stel bij een nieuwe rit de eindtijd in op nu zodra de eindstand is ingevuld.</string>
     <string name="settings_allow_spaces">Spaties in postcodes toestaan</string>
@@ -138,13 +138,13 @@
     <string name="export_done_title">Back-up opgeslagen</string>
     <string name="export_done_message">Opgeslagen in Downloads als %1$s.</string>
     <string name="import_key_title">Voer versleutelingssleutel in</string>
-    <string name="import_key_message">Plak of typ de sleutel die werd getoond toen deze back-up werd gemaakt.</string>
+    <string name="import_key_message">Plak of type de sleutel die werd getoond toen deze back-up werd gemaakt.</string>
     <string name="import_key_label">Sleutel</string>
     <string name="import_key_placeholder">A3F2 B19C 4D7E …</string>
     <string name="import_key_error">Sleutel moet 64 hexadecimale tekens zijn</string>
     <string name="import_key_continue">Doorgaan</string>
     <string name="import_confirm_title">Alle ritten vervangen?</string>
-    <string name="import_confirm_message">Alle bestaande ritten worden verwijderd en vervangen door de back-up. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="import_confirm_message">Alle bestaande ritten worden verwijderd en vervangen met de back-up. Dit kan niet ongedaan worden gemaakt.</string>
     <string name="import_confirm_action">Vervangen en importeren</string>
     <string name="import_done_title">Import voltooid</string>
     <string name="import_done_one">1 rit is geïmporteerd.</string>
@@ -155,8 +155,8 @@
     <string name="csv_header_ride">Rit #</string>
     <string name="csv_header_start">Start</string>
     <string name="csv_header_end">Einde</string>
-    <string name="csv_header_start_postal">Startpostcode</string>
-    <string name="csv_header_end_postal">Eindpostcode</string>
+    <string name="csv_header_start_postal">Start postcode</string>
+    <string name="csv_header_end_postal">Eind postcode</string>
     <string name="csv_header_license_plate">Kenteken</string>
     <string name="csv_header_start_mileage">Beginstand</string>
     <string name="csv_header_end_mileage">Eindstand</string>

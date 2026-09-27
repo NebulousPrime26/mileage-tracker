@@ -211,7 +211,8 @@ fun TripEntryScreen(
         else -> null
     }
 
-    val canSave = startPostalCode.isNotBlank() &&
+    val canSave = licensePlate.isNotBlank() &&
+        startPostalCode.isNotBlank() &&
         endPostalCode.isNotBlank() &&
         startMileage != null &&
         endMileage != null &&
@@ -373,6 +374,7 @@ fun TripEntryScreen(
                     onValueChange = { licensePlate = it.uppercase(Locale.ROOT) },
                     label = { Text(stringResource(R.string.entry_license_plate)) },
                     singleLine = true,
+                    isError = licensePlate.isBlank(),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Characters,
                     ),
