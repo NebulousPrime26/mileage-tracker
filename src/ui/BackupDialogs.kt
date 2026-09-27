@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,32 +31,28 @@ import com.nebulousprime26.mileage_tracker.data.TripCrypto
 import kotlinx.coroutines.launch
 
 /**
- * Shows the freshly generated key. Warning text makes clear that
- * dismissing this dialog discards the key permanently.
+ * Shows the freshly generated key before anything is written to disk.
+ * The backup file is only created if the user taps "I understand".
  */
 @Composable
 fun ExportKeyDialog(
     key: String,
     filename: String,
-    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onCancel,
         title = { Text("Save your encryption key") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Backup saved to Downloads as $filename.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = "This key is not stored anywhere. Once you close this " +
-                        "dialog it is gone forever. Write it down now — you will " +
-                        "need it to import this backup.",
+                    text = "This key won't be shown again. Write it down to " +
+                        "import this backup later.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -73,6 +70,15 @@ fun ExportKeyDialog(
                         modifier = Modifier.padding(12.dp),
                     )
                 }
+                Text(
+                    text = "Backup will be saved as $filename.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = {
                     scope.launch {
                         val clipData = ClipData.newPlainText("Mileage backup key", key)
@@ -82,12 +88,31 @@ fun ExportKeyDialog(
                 }) {
                     Text("Copy key")
                 }
+                TextButton(onClick = onConfirm) {
+                    Text("I understand")
+                }
             }
         },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+        },
+    )
+}
+
+/** Confirmation shown after the backup file has been written. */
+@Composable
+fun ExportDoneDialog(
+    filename: String,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Backup saved") },
+        text = {
+            Text("Saved to Downloads as $filename.")
+        },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("I've written it down")
-            }
+            TextButton(onClick = onDismiss) { Text("OK") }
         },
     )
 }
@@ -136,9 +161,7 @@ fun ImportKeyDialog(
 }
 
 /**
- * Final warning before the import destroys existing data. The confirm
- * button is deliberately worded as an action ("Replace and import")
- * rather than a bare "OK", so the destructive nature is unmissable.
+ * Final warning before the import destroys existing data.
  */
 @Composable
 fun ImportConfirmDialog(
