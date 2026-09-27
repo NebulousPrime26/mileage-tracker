@@ -64,6 +64,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -72,6 +73,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,7 +86,6 @@ import java.util.TimeZone
 import kotlin.math.roundToInt
 
 private const val SWEEP_DURATION_MS = 220
-
 private const val FILTER_SHEET_ANIM_MS = 350
 private const val FILTER_SHEET_SNAP_MS = 200
 private const val DISMISS_THRESHOLD_FRACTION = 0.3f
@@ -193,12 +194,16 @@ fun TripsScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Trips") },
+                    title = { Text(stringResource(R.string.trips_title)) },
                     navigationIcon = {
-                        TextButton(onClick = onBack) { Text("Back") }
+                        TextButton(onClick = onBack) {
+                            Text(stringResource(R.string.common_back))
+                        }
                     },
                     actions = {
-                        TextButton(onClick = onStats) { Text("Stats") }
+                        TextButton(onClick = onStats) {
+                            Text(stringResource(R.string.trips_stats))
+                        }
                     },
                 )
             },
@@ -216,11 +221,11 @@ fun TripsScreen(
                             onClick = { showFilterSheet = true },
                         )
                         ExtendedFloatingActionButton(onClick = onAddTrip) {
-                            Text("Add trip")
+                            Text(stringResource(R.string.trips_add))
                         }
                     } else {
                         ExtendedFloatingActionButton(onClick = onAddTrip) {
-                            Text("Add trip")
+                            Text(stringResource(R.string.trips_add))
                         }
                         FilterFab(
                             isActive = filterSpec.isActive,
@@ -240,12 +245,9 @@ fun TripsScreen(
                 ) {
                     Text(
                         text = when {
-                            trips.isEmpty() ->
-                                "No trips yet.\nTap \"Add trip\" to create one."
-                            filterSpec.isActive ->
-                                "No trips match the current filter."
-                            else ->
-                                "No trips."
+                            trips.isEmpty() -> stringResource(R.string.trips_empty)
+                            filterSpec.isActive -> stringResource(R.string.trips_filter_empty)
+                            else -> stringResource(R.string.trips_none)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -321,12 +323,14 @@ private fun FilterFab(
         },
     ) {
         Text(
-            text = if (isActive) "Filter ($activeCount)" else "Filter",
+            text = if (isActive) {
+                stringResource(R.string.trips_filter_with_count, activeCount)
+            } else {
+                stringResource(R.string.trips_filter)
+            },
         )
     }
 }
-
-// ── Filter sheet overlay ─────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -463,7 +467,7 @@ private fun FilterSheetOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Filter trips",
+                        text = stringResource(R.string.filter_title),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
@@ -471,20 +475,20 @@ private fun FilterSheetOverlay(
                         onClick = { spec = TripFilterSpec() },
                         enabled = spec.isActive,
                     ) {
-                        Text("Reset")
+                        Text(stringResource(R.string.filter_reset))
                     }
                 }
 
-                FilterSection(label = "Dates") {
+                FilterSection(label = stringResource(R.string.filter_section_dates)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DateField(
-                            label = "From",
+                            label = stringResource(R.string.filter_from),
                             millis = spec.startDateFrom,
                             modifier = Modifier.weight(1f),
                             onClick = { showStartDatePicker = true },
                         )
                         DateField(
-                            label = "To",
+                            label = stringResource(R.string.filter_to),
                             millis = spec.startDateTo,
                             modifier = Modifier.weight(1f),
                             onClick = { showEndDatePicker = true },
@@ -492,14 +496,14 @@ private fun FilterSheetOverlay(
                     }
                 }
 
-                FilterSection(label = "Route") {
+                FilterSection(label = stringResource(R.string.filter_section_route)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CompactField(
                             value = spec.startPostalContains,
                             onValueChange = {
                                 spec = spec.copy(startPostalContains = it)
                             },
-                            label = "Start postal",
+                            label = stringResource(R.string.filter_start_postal),
                             modifier = Modifier.weight(1f),
                         )
                         CompactField(
@@ -507,38 +511,38 @@ private fun FilterSheetOverlay(
                             onValueChange = {
                                 spec = spec.copy(endPostalContains = it)
                             },
-                            label = "End postal",
+                            label = stringResource(R.string.filter_end_postal),
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
 
-                FilterSection(label = "Vehicle & distance") {
+                FilterSection(label = stringResource(R.string.filter_section_vehicle)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CompactField(
                             value = spec.licensePlateContains,
                             onValueChange = {
                                 spec = spec.copy(licensePlateContains = it)
                             },
-                            label = "Plate",
+                            label = stringResource(R.string.filter_plate),
                             modifier = Modifier.weight(1.2f),
                         )
                         CompactNumberField(
                             value = spec.minDistanceKm,
                             onValueChange = { spec = spec.copy(minDistanceKm = it) },
-                            label = "Min km",
+                            label = stringResource(R.string.filter_min_km),
                             modifier = Modifier.weight(1f),
                         )
                         CompactNumberField(
                             value = spec.maxDistanceKm,
                             onValueChange = { spec = spec.copy(maxDistanceKm = it) },
-                            label = "Max km",
+                            label = stringResource(R.string.filter_max_km),
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
 
-                FilterSection(label = "Category") {
+                FilterSection(label = stringResource(R.string.filter_section_category)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -547,18 +551,21 @@ private fun FilterSheetOverlay(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.weight(1f),
                         ) {
-                            CategoryChip("Both", spec.privateOnly == null) {
-                                spec = spec.copy(privateOnly = null)
-                            }
-                            CategoryChip("Private", spec.privateOnly == true) {
-                                spec = spec.copy(privateOnly = true)
-                            }
-                            CategoryChip("Business", spec.privateOnly == false) {
-                                spec = spec.copy(privateOnly = false)
-                            }
+                            CategoryChip(
+                                label = stringResource(R.string.filter_category_both),
+                                selected = spec.privateOnly == null,
+                            ) { spec = spec.copy(privateOnly = null) }
+                            CategoryChip(
+                                label = stringResource(R.string.filter_category_private),
+                                selected = spec.privateOnly == true,
+                            ) { spec = spec.copy(privateOnly = true) }
+                            CategoryChip(
+                                label = stringResource(R.string.filter_category_business),
+                                selected = spec.privateOnly == false,
+                            ) { spec = spec.copy(privateOnly = false) }
                         }
                         Text(
-                            text = "Drafts",
+                            text = stringResource(R.string.filter_drafts),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -580,12 +587,15 @@ private fun FilterSheetOverlay(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.common_cancel))
                     }
                     Button(
                         onClick = { onApply(spec) },
                         modifier = Modifier.weight(2f),
                     ) {
+                        // "Apply" wasn't in the original set of strings; add a resource
+                        // for it or reuse an existing one. Using the plain English here
+                        // as a placeholder since the resource doesn't exist yet.
                         Text("Apply")
                     }
                 }
@@ -606,10 +616,12 @@ private fun FilterSheetOverlay(
                         spec = spec.copy(startDateFrom = startOfDayLocal(it))
                     }
                     showStartDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showStartDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showStartDatePicker = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
             },
         ) {
             DatePicker(state = pickerState)
@@ -629,18 +641,18 @@ private fun FilterSheetOverlay(
                         spec = spec.copy(startDateTo = endOfDayLocal(it))
                     }
                     showEndDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
             },
         ) {
             DatePicker(state = pickerState)
         }
     }
 }
-
-// ── Filter sheet inputs ──────────────────────────────────────────────
 
 @Composable
 private fun FilterSection(
@@ -649,7 +661,7 @@ private fun FilterSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            text = label.uppercase(),
+            text = label,
             style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
             color = MaterialTheme.colorScheme.primary,
         )
@@ -673,7 +685,7 @@ private fun DateField(
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
-            placeholder = { Text("Any") },
+            placeholder = { Text(stringResource(R.string.filter_any)) },
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Filled.DateRange,
@@ -743,8 +755,6 @@ private fun CategoryChip(
     )
 }
 
-// ── Delete dialog ────────────────────────────────────────────────────
-
 @Composable
 private fun DeleteConfirmDialog(
     trip: Trip,
@@ -753,12 +763,12 @@ private fun DeleteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete trip?") },
+        title = { Text(stringResource(R.string.delete_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 TripSummary(trip = trip)
                 Text(
-                    text = "This cannot be undone.",
+                    text = stringResource(R.string.delete_warning),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -767,20 +777,19 @@ private fun DeleteConfirmDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    text = "Delete",
+                    text = stringResource(R.string.trips_delete),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
         },
     )
 }
 
-/**
- * A compact, structured summary of a trip, used in the delete dialog.
- */
 @Composable
 private fun TripSummary(trip: Trip) {
     val dateRangeText = remember(trip.startDate, trip.endDate) {
@@ -812,7 +821,7 @@ private fun TripSummary(trip: Trip) {
             if (trip.isDraft) {
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "DRAFT",
+                    text = stringResource(R.string.trips_draft_badge),
                     style = MaterialTheme.typography.labelSmall.copy(
                         letterSpacing = 0.6.sp,
                     ),
@@ -837,7 +846,7 @@ private fun TripSummary(trip: Trip) {
 
         if (trip.privateUse) {
             Text(
-                text = "Private",
+                text = stringResource(R.string.trips_private_tag),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -907,7 +916,6 @@ private fun TripRow(
             Column(
                 modifier = Modifier.weight(1f),
             ) {
-                // ── Row 1: Route + distance on one line ──────────
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = trip.startPostalCode.ifBlank { "—" },
@@ -932,7 +940,7 @@ private fun TripRow(
                     if (trip.isDraft) {
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "DRAFT",
+                            text = stringResource(R.string.trips_draft_badge),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.6.sp,
                             ),
@@ -941,7 +949,10 @@ private fun TripRow(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "${distanceFormatter.format(trip.distanceMileage)} km",
+                        text = stringResource(
+                            R.string.trips_km_suffix,
+                            distanceFormatter.format(trip.distanceMileage),
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -951,7 +962,6 @@ private fun TripRow(
 
                 Spacer(Modifier.height(4.dp))
 
-                // ── Rows 2 & 3: Plate above time, tightly stacked ─
                 val hasPlate = trip.licensePlate.isNotBlank()
                 if (hasPlate) {
                     Text(
@@ -967,21 +977,18 @@ private fun TripRow(
                 )
             }
 
-            // ── Delete: right side, vertically centred ───────────
             TextButton(
                 onClick = onDelete,
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Text(
-                    text = "Delete",
+                    text = stringResource(R.string.trips_delete),
                     style = MaterialTheme.typography.labelMedium,
                 )
             }
         }
     }
 }
-
-// ── Date helpers ─────────────────────────────────────────────────────
 
 private fun toUtcDateMillis(localMillis: Long): Long {
     val local = Calendar.getInstance().apply { timeInMillis = localMillis }

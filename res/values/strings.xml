@@ -1,4 +1,181 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App -->
     <string name="app_name">Mileage</string>
+    <string name="version_format">Version %1$s</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_ok">OK</string>
+
+    <!-- Landing -->
+    <string name="landing_continue">Continue</string>
+    <string name="landing_settings">Settings</string>
+    <string name="landing_import">Import</string>
+    <string name="landing_export">Export</string>
+    <string name="landing_share">Share</string>
+
+    <!-- Trips screen -->
+    <string name="trips_title">Trips</string>
+    <string name="trips_stats">Stats</string>
+    <string name="trips_add">Add trip</string>
+    <string name="trips_filter">Filter</string>
+    <string name="trips_filter_with_count">Filter (%1$d)</string>
+    <string name="trips_empty">No trips yet.\nTap \"Add trip\" to create one.</string>
+    <string name="trips_filter_empty">No trips match the current filter.</string>
+    <string name="trips_none">No trips.</string>
+    <string name="trips_delete">Delete</string>
+    <string name="trips_draft_badge">DRAFT</string>
+    <string name="trips_private_tag">Private</string>
+    <string name="trips_km_suffix">%1$s km</string>
+
+    <!-- Delete dialog -->
+    <string name="delete_title">Delete trip?</string>
+    <string name="delete_warning">This cannot be undone.</string>
+
+    <!-- Filter sheet -->
+    <string name="filter_title">Filter trips</string>
+    <string name="filter_reset">Reset</string>
+    <string name="filter_section_dates">DATES</string>
+    <string name="filter_section_route">ROUTE</string>
+    <string name="filter_section_vehicle">VEHICLE &amp; DISTANCE</string>
+    <string name="filter_section_category">CATEGORY</string>
+    <string name="filter_from">From</string>
+    <string name="filter_to">To</string>
+    <string name="filter_any">Any</string>
+    <string name="filter_start_postal">Start postal</string>
+    <string name="filter_end_postal">End postal</string>
+    <string name="filter_plate">Plate</string>
+    <string name="filter_min_km">Min km</string>
+    <string name="filter_max_km">Max km</string>
+    <string name="filter_category_both">Both</string>
+    <string name="filter_category_private">Private</string>
+    <string name="filter_category_business">Business</string>
+    <string name="filter_drafts">Drafts</string>
+    <string name="filter_apply">Apply</string>
+
+    <!-- Trip entry -->
+    <string name="entry_title_new">New trip</string>
+    <string name="entry_title_edit">Edit trip</string>
+    <string name="entry_license_plate">License plate</string>
+    <string name="entry_private">Private</string>
+    <string name="entry_start">Start</string>
+    <string name="entry_end">End</string>
+    <string name="entry_start_postal">Start postal</string>
+    <string name="entry_end_postal">End postal</string>
+    <string name="entry_start_mileage">Start mileage</string>
+    <string name="entry_end_mileage">End mileage</string>
+    <string name="entry_notes">Notes (optional)</string>
+    <string name="entry_save">Save trip</string>
+    <string name="entry_save_changes">Save changes</string>
+    <string name="entry_complete_trip">Complete trip</string>
+    <string name="entry_save_draft">Save as draft</string>
+    <string name="entry_update_draft">Update draft</string>
+    <string name="entry_select_time">Select time</string>
+    <string name="entry_hint_required">Fill in all required fields to save, or save as a draft.</string>
+    <string name="entry_hint_empty">Fill in the fields above to save.</string>
+    <string name="entry_error_date_order">End date &amp; time can\'t be before the start.</string>
+    <string name="entry_error_mileage_order">End mileage must be greater than or equal to start mileage</string>
+    <string name="entry_error_conflict">Mileage range overlaps an existing trip (%1$s–%2$s km on %3$s)</string>
+    <string name="entry_error_chronology_start">Start mileage can\'t be below %1$s km: the trip on %2$s already ended there.</string>
+    <string name="entry_error_chronology_end">End mileage can\'t exceed %1$s km: the trip on %2$s already starts there.</string>
+
+    <!-- Stats -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_metric_mileage">Mileage</string>
+    <string name="stats_metric_duration">Travel time</string>
+    <string name="stats_filter_by_date">Filter by date</string>
+    <string name="stats_clear_filters">Clear filters</string>
+    <string name="stats_empty">No trips in the selected range.</string>
+    <string name="stats_legend_private">Private</string>
+    <string name="stats_legend_business">Business</string>
+    <string name="stats_legend_total">Total</string>
+    <string name="stats_toggle_incremental">Incremental</string>
+    <string name="stats_toggle_cumulative">Cumulative</string>
+    <string name="stats_toggle_sum">Sum</string>
+    <string name="stats_toggle_average">Average</string>
+    <string name="stats_breakdown">Yearly breakdown</string>
+    <string name="stats_table_year">Year</string>
+    <string name="stats_table_all">All</string>
+    <string name="stats_duration_hours">%1$s h</string>
+    <string name="stats_axis_mileage_k">%1$dk</string>
+    <string name="stats_axis_hours_int">%1$dh</string>
+    <string name="stats_axis_hours_dec">%1$s h</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_section_language">Language</string>
+    <string name="settings_language_system">Follow system</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_dutch">Nederlands</string>
+    <string name="settings_section_positions">Positions</string>
+    <string name="settings_add_trip_button">Add Trip button</string>
+    <string name="settings_add_trip_button_desc">Where the floating button sits on the Trips screen.</string>
+    <string name="settings_postal_group">Postal Code group</string>
+    <string name="settings_postal_group_desc">Which side of the trip entry form the postal codes appear on, relative to mileage.</string>
+    <string name="settings_draft_button">Save Draft button</string>
+    <string name="settings_draft_button_desc">Which side of the trip entry form the draft button appears on, relative to save.</string>
+    <string name="settings_position_left">Left</string>
+    <string name="settings_position_right">Right</string>
+    <string name="settings_section_behaviour">Behaviour</string>
+    <string name="settings_round_trips">Assume round trips</string>
+    <string name="settings_round_trips_desc">When adding a trip, pre-fill the end postal code with where the previous trip started.</string>
+    <string name="settings_auto_fill_end_time">Auto-fill end time</string>
+    <string name="settings_auto_fill_end_time_desc">When adding a trip, set the end time to now as soon as the end mileage is entered.</string>
+    <string name="settings_allow_spaces">Allow spaces in postal codes</string>
+
+    <!-- Backup dialogs -->
+    <string name="export_key_title">Save your encryption key</string>
+    <string name="export_key_warning">This key won\'t be shown again. Write it down to import this backup later.</string>
+    <string name="export_key_copied">Copied to clipboard.</string>
+    <string name="export_key_backup_will_be">Backup will be saved as %1$s.</string>
+    <string name="export_key_understand">I understand</string>
+    <string name="export_done_title">Backup saved</string>
+    <string name="export_done_message">Saved to Downloads as %1$s.</string>
+    <string name="import_key_title">Enter encryption key</string>
+    <string name="import_key_message">Paste or type the key that was shown when this backup was created.</string>
+    <string name="import_key_label">Key</string>
+    <string name="import_key_placeholder">A3F2 B19C 4D7E …</string>
+    <string name="import_key_error">Key must be 64 hex characters</string>
+    <string name="import_key_continue">Continue</string>
+    <string name="import_confirm_title">Replace all trips?</string>
+    <string name="import_confirm_message">All existing trips will be deleted and replaced by the backup. This cannot be undone.</string>
+    <string name="import_confirm_action">Replace and import</string>
+    <string name="import_done_title">Import complete</string>
+    <string name="import_done_one">1 trip was imported.</string>
+    <string name="import_done_many">%1$d trips were imported.</string>
+    <string name="backup_error_title">Backup failed</string>
+
+    <!-- CSV export -->
+    <string name="csv_header_ride">Ride #</string>
+    <string name="csv_header_start">Start</string>
+    <string name="csv_header_end">End</string>
+    <string name="csv_header_start_postal">Start postal</string>
+    <string name="csv_header_end_postal">End postal</string>
+    <string name="csv_header_license_plate">License plate</string>
+    <string name="csv_header_start_mileage">Start mileage</string>
+    <string name="csv_header_end_mileage">End mileage</string>
+    <string name="csv_header_distance_km">Distance (km)</string>
+    <string name="csv_header_private">Private</string>
+    <string name="csv_header_notes">Notes</string>
+    <string name="csv_yes">Yes</string>
+    <string name="csv_no">No</string>
+
+    <!-- Backup errors -->
+    <string name="backup_error_newer_format">Backup was made with a newer version of the app (format %1$d).</string>
+    <string name="backup_error_downloads_create">Could not create the file in Downloads.</string>
+    <string name="backup_error_downloads_open">Could not open the Downloads file for writing.</string>
+    <string name="backup_error_nothing_to_export">Nothing to export.</string>
+    <string name="backup_error_no_trips">No trips to share.</string>
+    <string name="backup_error_export_failed">Export failed.</string>
+    <string name="backup_error_import_failed">Import failed.</string>
+    <string name="backup_error_prepare_csv">Could not prepare the CSV file.</string>
+    <string name="backup_error_invalid_key">The key isn\'t a valid 64-character hex string.</string>
+    <string name="backup_error_read_file">Could not read the selected file.</string>
+    <string name="backup_error_decrypt">Could not decrypt — the key is wrong or the file is damaged.</string>
 </resources>

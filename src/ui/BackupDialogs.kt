@@ -21,16 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.data.TripCrypto
 
-/**
- * Shows the freshly generated key before anything is written to disk.
- * The key is placed on the clipboard as soon as the dialog appears.
- * The backup file is only created if the user taps "I understand".
- */
 @Composable
 fun ExportKeyDialog(
     key: String,
@@ -40,9 +37,6 @@ fun ExportKeyDialog(
 ) {
     val clipboard = LocalClipboard.current
 
-    // Copy the key once, when the dialog first appears. Keyed on `key`
-    // so a re-composition doesn't re-copy (which would be harmless but
-    // would keep firing the suspend call).
     LaunchedEffect(key) {
         val clipData = ClipData.newPlainText("Mileage backup key", key)
         clipboard.setClipEntry(clipData.toClipEntry())
@@ -50,12 +44,11 @@ fun ExportKeyDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Save your encryption key") },
+        title = { Text(stringResource(R.string.export_key_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "This key won't be shown again. Write it down to " +
-                        "import this backup later.",
+                    text = stringResource(R.string.export_key_warning),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -74,12 +67,12 @@ fun ExportKeyDialog(
                     )
                 }
                 Text(
-                    text = "Copied to clipboard.",
+                    text = stringResource(R.string.export_key_copied),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "Backup will be saved as $filename.",
+                    text = stringResource(R.string.export_key_backup_will_be, filename),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -87,16 +80,17 @@ fun ExportKeyDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("I understand")
+                Text(stringResource(R.string.export_key_understand))
             }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.common_cancel))
+            }
         },
     )
 }
 
-/** Confirmation shown after the backup file has been written. */
 @Composable
 fun ExportDoneDialog(
     filename: String,
@@ -104,17 +98,18 @@ fun ExportDoneDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Backup saved") },
+        title = { Text(stringResource(R.string.export_done_title)) },
         text = {
-            Text("Saved to Downloads as $filename.")
+            Text(stringResource(R.string.export_done_message, filename))
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_ok))
+            }
         },
     )
 }
 
-/** Asks the user to type or paste the key for an import. */
 @Composable
 fun ImportKeyDialog(
     onConfirm: (String) -> Unit,
@@ -125,18 +120,18 @@ fun ImportKeyDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Enter encryption key") },
+        title = { Text(stringResource(R.string.import_key_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Paste or type the key that was shown when this backup was created.")
+                Text(stringResource(R.string.import_key_message))
                 OutlinedTextField(
                     value = keyInput,
                     onValueChange = { keyInput = it },
-                    label = { Text("Key") },
-                    placeholder = { Text("A3F2 B19C 4D7E …") },
+                    label = { Text(stringResource(R.string.import_key_label)) },
+                    placeholder = { Text(stringResource(R.string.import_key_placeholder)) },
                     isError = keyInput.isNotEmpty() && !isValid,
                     supportingText = if (keyInput.isNotEmpty() && !isValid) {
-                        { Text("Key must be 64 hex characters") }
+                        { Text(stringResource(R.string.import_key_error)) }
                     } else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -148,11 +143,13 @@ fun ImportKeyDialog(
                 onClick = { onConfirm(keyInput) },
                 enabled = isValid,
             ) {
-                Text("Continue")
+                Text(stringResource(R.string.import_key_continue))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
         },
     )
 }
@@ -164,11 +161,10 @@ fun ImportConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Replace all trips?") },
+        title = { Text(stringResource(R.string.import_confirm_title)) },
         text = {
             Text(
-                text = "All existing trips will be deleted and replaced " +
-                    "by the backup. This cannot be undone.",
+                text = stringResource(R.string.import_confirm_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -176,18 +172,19 @@ fun ImportConfirmDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    text = "Replace and import",
+                    text = stringResource(R.string.import_confirm_action),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
         },
     )
 }
 
-/** Post-import confirmation. */
 @Composable
 fun ImportDoneDialog(
     count: Int,
@@ -195,20 +192,24 @@ fun ImportDoneDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Import complete") },
+        title = { Text(stringResource(R.string.import_done_title)) },
         text = {
             Text(
-                if (count == 1) "1 trip was imported."
-                else "$count trips were imported."
+                if (count == 1) {
+                    stringResource(R.string.import_done_one)
+                } else {
+                    stringResource(R.string.import_done_many, count)
+                }
             )
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_ok))
+            }
         },
     )
 }
 
-/** Generic failure message for either direction. */
 @Composable
 fun BackupErrorDialog(
     message: String,
@@ -216,10 +217,12 @@ fun BackupErrorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Backup failed") },
+        title = { Text(stringResource(R.string.backup_error_title)) },
         text = { Text(message) },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_ok))
+            }
         },
     )
 }
