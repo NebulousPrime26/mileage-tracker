@@ -1,7 +1,6 @@
 package com.nebulousprime26.mileage_tracker.ui
 
 import android.content.ClipData
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,48 +13,49 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nebulousprime26.mileage_tracker.data.TripCrypto
-import kotlinx.coroutines.launch
 
 /**
- * Shows the freshly generated key. Warning text makes clear that
- * dismissing this dialog discards the key permanently.
+ * Shows the freshly generated key before anything is written to disk.
+ * The key is placed on the clipboard as soon as the dialog appears.
+ * The backup file is only created if the user taps "I understand".
  */
 @Composable
 fun ExportKeyDialog(
     key: String,
     filename: String,
-    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
 ) {
     val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+
+    // Copy the key once, when the dialog first appears. Keyed on `key`
+    // so a re-composition doesn't re-copy (which would be harmless but
+    // would keep firing the suspend call).
+    LaunchedEffect(key) {
+        val clipData = ClipData.newPlainText("Mileage backup key", key)
+        clipboard.setClipEntry(clipData.toClipEntry())
+    }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onCancel,
         title = { Text("Save your encryption key") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Backup saved to Downloads as $filename.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = "This key is not stored anywhere. Once you close this " +
-                        "dialog it is gone forever. Write it down now — you will " +
-                        "need it to import this backup.",
+                    text = "This key won't be shown again. Write it down to " +
+                        "import this backup later.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -73,21 +73,43 @@ fun ExportKeyDialog(
                         modifier = Modifier.padding(12.dp),
                     )
                 }
-                TextButton(onClick = {
-                    scope.launch {
-                        val clipData = ClipData.newPlainText("Mileage backup key", key)
-                        clipboard.setClipEntry(clipData.toClipEntry())
-                        Toast.makeText(context, "Key copied", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text("Copy key")
-                }
+                Text(
+                    text = "Copied to clipboard.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Backup will be saved as $filename.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("I've written it down")
+            TextButton(onClick = onConfirm) {
+                Text("I understand")
             }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+        },
+    )
+}
+
+/** Confirmation shown after the backup file has been written. */
+@Composable
+fun ExportDoneDialog(
+    filename: String,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Backup saved") },
+        text = {
+            Text("Saved to Downloads as $filename.")
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK") }
         },
     )
 }
@@ -135,11 +157,6 @@ fun ImportKeyDialog(
     )
 }
 
-/**
- * Final warning before the import destroys existing data. The confirm
- * button is deliberately worded as an action ("Replace and import")
- * rather than a bare "OK", so the destructive nature is unmissable.
- */
 @Composable
 fun ImportConfirmDialog(
     onConfirm: () -> Unit,
@@ -149,20 +166,12 @@ fun ImportConfirmDialog(
         onDismissRequest = onDismiss,
         title = { Text("Replace all trips?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "Importing will permanently delete every trip currently " +
-                        "in the app, including drafts, and replace them with the " +
-                        "contents of the backup.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Text(
-                    text = "This cannot be undone. Export your current trips first " +
-                        "if you want to keep them.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            Text(
+                text = "All existing trips will be deleted and replaced " +
+                    "by the backup. This cannot be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {

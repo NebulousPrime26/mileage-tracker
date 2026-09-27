@@ -23,9 +23,9 @@ import java.util.Calendar
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
-     * UI state for the export/import flow. Import replaces the entire
-     * database, so the flow includes an explicit confirmation step
-     * before anything is deleted.
+     * UI state for the export/import flow. The export produces the
+     * key and encrypts the data in memory first, then writes to disk
+     * only after the user has confirmed they've saved the key.
      */
     sealed interface BackupState {
         /** No backup operation in progress. */
@@ -34,8 +34,11 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         /** An export or import is running. */
         object Working : BackupState
 
-        /** Export finished; the key must be shown to the user exactly once. */
-        data class Exported(val key: String, val filename: String) : BackupState
+        /** Key generated, waiting for the user to confirm before writing. */
+        data class ExportPreview(val key: String, val filename: String) : BackupState
+
+        /** Backup file written successfully. */
+        data class Exported(val filename: String) : BackupState
 
         /** The user picked a file and needs to supply the key. */
         data class ImportAwaitingKey(val uri: Uri) : BackupState
@@ -49,6 +52,18 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         /** Something went wrong in either direction. */
         data class Failed(val message: String) : BackupState
     }
+
+    /**
+     * Holds the encrypted backup in memory between the preview dialog
+     * and the confirmation. Cleared on confirm, cancel, or failure.
+     */
+    private class PendingExport(
+        val key: ByteArray,
+        val filename: String,
+        val encryptedBytes: ByteArray,
+    )
+
+    private var pendingExport: PendingExport? = null
 
     private val dao: TripDao = getDatabase(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
@@ -268,9 +283,9 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     val backupState: StateFlow<BackupState> = _backupState
 
     /**
-     * Encrypts all trips and writes them to Downloads. On success,
-     * exposes the encryption key via [backupState] so the UI can show
-     * it to the user exactly once.
+     * Prepares the backup: reads all trips, generates a key, and
+     * encrypts everything in memory. Nothing is written to disk until
+     * [confirmExport] is called.
      */
     fun exportTrips() {
         viewModelScope.launch {
@@ -281,21 +296,57 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 val key = TripCrypto.generateKey()
                 val encrypted = TripCrypto.encrypt(json, key)
                 val filename = TripBackup.defaultFilename()
-                TripBackup.writeToDownloads(
-                    context = getApplication(),
+
+                pendingExport = PendingExport(
+                    key = key,
                     filename = filename,
-                    bytes = encrypted,
+                    encryptedBytes = encrypted,
                 )
-                _backupState.value = BackupState.Exported(
+                _backupState.value = BackupState.ExportPreview(
                     key = TripCrypto.formatKey(key),
                     filename = filename,
                 )
             } catch (t: Throwable) {
+                pendingExport = null
                 _backupState.value = BackupState.Failed(
                     t.message ?: "Export failed",
                 )
             }
         }
+    }
+
+    /**
+     * Writes the prepared backup to Downloads. Called only after the
+     * user has confirmed they saved the key.
+     */
+    fun confirmExport() {
+        val pending = pendingExport ?: run {
+            _backupState.value = BackupState.Failed("Nothing to export.")
+            return
+        }
+        viewModelScope.launch {
+            _backupState.value = BackupState.Working
+            try {
+                TripBackup.writeToDownloads(
+                    context = getApplication(),
+                    filename = pending.filename,
+                    bytes = pending.encryptedBytes,
+                )
+                pendingExport = null
+                _backupState.value = BackupState.Exported(pending.filename)
+            } catch (t: Throwable) {
+                pendingExport = null
+                _backupState.value = BackupState.Failed(
+                    t.message ?: "Export failed",
+                )
+            }
+        }
+    }
+
+    /** Discards a prepared export without writing anything. */
+    fun cancelExport() {
+        pendingExport = null
+        _backupState.value = BackupState.Idle
     }
 
     /**
@@ -307,8 +358,8 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Called once the user has entered a key. Doesn't touch the database
-     * yet — it moves to a confirmation step, since the actual import
+     * Called once the user has entered a key. Doesn't touch the
+     * database yet — it moves to a confirmation step, since the import
      * wipes all existing trips.
      */
     fun submitImportKey(uri: Uri, keyInput: String) {
