@@ -1,5 +1,6 @@
 package com.nebulousprime26.mileage_tracker.ui
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -17,11 +18,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nebulousprime26.mileage_tracker.data.TripCsv
 
 @Composable
 fun LandingScreen(
@@ -31,12 +35,27 @@ fun LandingScreen(
     onSettings: () -> Unit = {},
 ) {
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
+    val shareUri by viewModel.shareUri.collectAsStateWithLifecycle()
     val busy = backupState is TripViewModel.BackupState.Working
+    val context = LocalContext.current
 
     val importPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) viewModel.beginImport(uri)
+    }
+
+    // When the ViewModel publishes a share URI, launch the system share
+    // sheet and then clear the pending state.
+    LaunchedEffect(shareUri) {
+        val uri = shareUri ?: return@LaunchedEffect
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = TripCsv.mimeType
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share trips"))
+        viewModel.clearShareUri()
     }
 
     Surface(
@@ -78,6 +97,7 @@ fun LandingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedButton(
                         onClick = { importPicker.launch(arrayOf("*/*")) },
@@ -86,13 +106,19 @@ fun LandingScreen(
                     ) {
                         Text("Import")
                     }
-                    Spacer(Modifier.width(12.dp))
                     OutlinedButton(
                         onClick = { viewModel.exportTrips() },
                         enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text("Export")
+                    }
+                    OutlinedButton(
+                        onClick = { viewModel.shareTripsAsCsv() },
+                        enabled = !busy,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Share")
                     }
                 }
             }
