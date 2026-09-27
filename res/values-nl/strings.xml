@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Mileage</string>
+    <string name="version_format">Versie %1$s</string>
+
+    <!-- Common -->
+    <string name="common_back">Terug</string>
+    <string name="common_cancel">Annuleren</string>
+    <string name="common_ok">OK</string>
+
+    <!-- Landing -->
+    <string name="landing_continue">Doorgaan</string>
+    <string name="landing_settings">Instellingen</string>
+    <string name="landing_import">Importeer</string>
+    <string name="landing_export">Exporteer</string>
+    <string name="landing_share">Delen</string>
+
+    <!-- Trips screen -->
+    <string name="trips_title">Ritten</string>
+    <string name="trips_stats">Statistieken</string>
+    <string name="trips_add">Nieuwe rit</string>
+    <string name="trips_filter">Filter</string>
+    <string name="trips_filter_with_count">Filter (%1$d)</string>
+    <string name="trips_empty">Nog geen ritten.\nTik op \"Nieuwe rit\" om er één toe te voegen.</string>
+    <string name="trips_filter_empty">Geen ritten die bij het filter passen.</string>
+    <string name="trips_none">Geen ritten.</string>
+    <string name="trips_delete">Verwijderen</string>
+    <string name="trips_draft_badge">CONCEPT</string>
+    <string name="trips_private_tag">Privé</string>
+    <string name="trips_km_suffix">%1$s km</string>
+
+    <!-- Delete dialog -->
+    <string name="delete_title">Rit verwijderen?</string>
+    <string name="delete_warning">Dit kan niet ongedaan worden gemaakt.</string>
+
+    <!-- Filter sheet -->
+    <string name="filter_title">Ritten filteren</string>
+    <string name="filter_reset">Wissen</string>
+    <string name="filter_section_dates">DATUMS</string>
+    <string name="filter_section_route">ROUTE</string>
+    <string name="filter_section_vehicle">VOERTUIG &amp; AFSTAND</string>
+    <string name="filter_section_category">CATEGORIE</string>
+    <string name="filter_from">Van</string>
+    <string name="filter_to">Tot</string>
+    <string name="filter_any">Alle</string>
+    <string name="filter_start_postal">Start postcode</string>
+    <string name="filter_end_postal">Eind postcode</string>
+    <string name="filter_plate">Kenteken</string>
+    <string name="filter_min_km">Min. km</string>
+    <string name="filter_max_km">Max. km</string>
+    <string name="filter_category_both">Beide</string>
+    <string name="filter_category_private">Privé</string>
+    <string name="filter_category_business">Zakelijk</string>
+    <string name="filter_drafts">Concepten</string>
+    <string name="filter_apply">Toepassen</string>
+
+    <!-- Trip entry -->
+    <string name="entry_title_new">Nieuwe rit</string>
+    <string name="entry_title_edit">Rit bewerken</string>
+    <string name="entry_license_plate">Kenteken</string>
+    <string name="entry_private">Privé</string>
+    <string name="entry_start">Starttijd</string>
+    <string name="entry_end">Eindtijd</string>
+    <string name="entry_start_postal">Start postcode</string>
+    <string name="entry_end_postal">Eind postcode</string>
+    <string name="entry_start_mileage">Beginstand</string>
+    <string name="entry_end_mileage">Eindstand</string>
+    <string name="entry_notes">Notities (optioneel)</string>
+    <string name="entry_save">Rit opslaan</string>
+    <string name="entry_save_changes">Wijzigingen opslaan</string>
+    <string name="entry_complete_trip">Rit afronden</string>
+    <string name="entry_save_draft">Als concept opslaan</string>
+    <string name="entry_update_draft">Concept bijwerken</string>
+    <string name="entry_select_time">Tijd kiezen</string>
+    <string name="entry_hint_required">Vul alle verplichte velden in om op te slaan, of sla op als concept.</string>
+    <string name="entry_hint_empty">Vul de velden hierboven in om op te slaan.</string>
+    <string name="entry_error_date_order">Einddatum en -tijd kunnen niet vóór de start liggen.</string>
+    <string name="entry_error_mileage_order">Eindstand moet groter dan of gelijk aan de beginstand zijn</string>
+    <string name="entry_error_conflict">Kilometerbereik overlapt een bestaande rit (%1$s–%2$s km op %3$s)</string>
+    <string name="entry_error_chronology_start">Beginstand kan niet onder %1$s km liggen: de rit van %2$s eindigde daar al.</string>
+    <string name="entry_error_chronology_end">Eindstand kan niet boven %1$s km uitkomen: de rit van %2$s begint daar al.</string>
+
+    <!-- Stats -->
+    <string name="stats_title">Statistieken</string>
+    <string name="stats_metric_mileage">Afstand</string>
+    <string name="stats_metric_duration">Reistijd</string>
+    <string name="stats_filter_by_date">Filter op datum</string>
+    <string name="stats_clear_filters">Filters wissen</string>
+    <string name="stats_empty">Geen ritten in de gekozen periode.</string>
+    <string name="stats_legend_private">Privé</string>
+    <string name="stats_legend_business">Zakelijk</string>
+    <string name="stats_legend_total">Totaal</string>
+    <string name="stats_toggle_incremental">Incrementeel</string>
+    <string name="stats_toggle_cumulative">Cumulatief</string>
+    <string name="stats_toggle_sum">Som</string>
+    <string name="stats_toggle_average">Gemiddeld</string>
+    <string name="stats_breakdown">Jaarlijks overzicht</string>
+    <string name="stats_table_year">Jaar</string>
+    <string name="stats_table_all">Alle</string>
+    <string name="stats_duration_hours">%1$s u</string>
+    <string name="stats_axis_mileage_k">%1$dk</string>
+    <string name="stats_axis_hours_int">%1$du</string>
+    <string name="stats_axis_hours_dec">%1$s u</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Instellingen</string>
+    <string name="settings_section_appearance">Weergave</string>
+    <string name="settings_theme_system">Systeem volgen</string>
+    <string name="settings_theme_light">Licht</string>
+    <string name="settings_theme_dark">Donker</string>
+    <string name="settings_section_language">Taal</string>
+    <string name="settings_language_system">Systeem volgen</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_dutch">Nederlands</string>
+    <string name="settings_section_positions">Posities</string>
+    <string name="settings_add_trip_button">Knop Nieuwe rit</string>
+    <string name="settings_add_trip_button_desc">Waar de zwevende knop op het scherm Ritten staat.</string>
+    <string name="settings_postal_group">Groep postcodes</string>
+    <string name="settings_postal_group_desc">Aan welke kant van het ritformulier de postcodes staan, ten opzichte van de kilometerstand.</string>
+    <string name="settings_draft_button">Knop Concept opslaan</string>
+    <string name="settings_draft_button_desc">Aan welke kant van het ritformulier de conceptknop staat, ten opzichte van opslaan.</string>
+    <string name="settings_position_left">Links</string>
+    <string name="settings_position_right">Rechts</string>
+    <string name="settings_section_behaviour">Gedrag</string>
+    <string name="settings_round_trips">Retourritten aannemen</string>
+    <string name="settings_round_trips_desc">Vul bij een nieuwe rit de eind postcode alvast in met waar de vorige rit begon.</string>
+    <string name="settings_auto_fill_end_time">Eindtijd automatisch invullen</string>
+    <string name="settings_auto_fill_end_time_desc">Stel bij een nieuwe rit de eindtijd in op nu zodra de eindstand is ingevuld.</string>
+    <string name="settings_allow_spaces">Spaties in postcodes toestaan</string>
+
+    <!-- Backup dialogs -->
+    <string name="export_key_title">Bewaar je versleutelingssleutel</string>
+    <string name="export_key_warning">Deze sleutel wordt niet meer getoond. Schrijf hem op om de back-up later te kunnen importeren.</string>
+    <string name="export_key_copied">Gekopieerd naar klembord.</string>
+    <string name="export_key_backup_will_be">Back-up wordt opgeslagen als %1$s.</string>
+    <string name="export_key_understand">Ik begrijp het</string>
+    <string name="export_done_title">Back-up opgeslagen</string>
+    <string name="export_done_message">Opgeslagen in Downloads als %1$s.</string>
+    <string name="import_key_title">Voer versleutelingssleutel in</string>
+    <string name="import_key_message">Plak of type de sleutel die werd getoond toen deze back-up werd gemaakt.</string>
+    <string name="import_key_label">Sleutel</string>
+    <string name="import_key_placeholder">A3F2 B19C 4D7E …</string>
+    <string name="import_key_error">Sleutel moet 64 hexadecimale tekens zijn</string>
+    <string name="import_key_continue">Doorgaan</string>
+    <string name="import_confirm_title">Alle ritten vervangen?</string>
+    <string name="import_confirm_message">Alle bestaande ritten worden verwijderd en vervangen met de back-up. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="import_confirm_action">Vervangen en importeren</string>
+    <string name="import_done_title">Import voltooid</string>
+    <string name="import_done_one">1 rit is geïmporteerd.</string>
+    <string name="import_done_many">%1$d ritten zijn geïmporteerd.</string>
+    <string name="backup_error_title">Back-up mislukt</string>
+
+    <!-- CSV export -->
+    <string name="csv_header_ride">Rit #</string>
+    <string name="csv_header_start">Start</string>
+    <string name="csv_header_end">Einde</string>
+    <string name="csv_header_start_postal">Start postcode</string>
+    <string name="csv_header_end_postal">Eind postcode</string>
+    <string name="csv_header_license_plate">Kenteken</string>
+    <string name="csv_header_start_mileage">Beginstand</string>
+    <string name="csv_header_end_mileage">Eindstand</string>
+    <string name="csv_header_distance_km">Afstand (km)</string>
+    <string name="csv_header_private">Privé</string>
+    <string name="csv_header_notes">Notities</string>
+    <string name="csv_yes">Ja</string>
+    <string name="csv_no">Nee</string>
+
+    <!-- Backup errors -->
+    <string name="backup_error_newer_format">Back-up is gemaakt met een nieuwere versie van de app (formaat %1$d).</string>
+    <string name="backup_error_downloads_create">Kon het bestand niet in Downloads aanmaken.</string>
+    <string name="backup_error_downloads_open">Kon het bestand in Downloads niet openen om te schrijven.</string>
+    <string name="backup_error_nothing_to_export">Niets om te exporteren.</string>
+    <string name="backup_error_no_trips">Geen ritten om te delen.</string>
+    <string name="backup_error_export_failed">Exporteren mislukt.</string>
+    <string name="backup_error_import_failed">Importeren mislukt.</string>
+    <string name="backup_error_prepare_csv">Kon het CSV-bestand niet voorbereiden.</string>
+    <string name="backup_error_invalid_key">De sleutel is geen geldige hexadecimale tekenreeks van 64 tekens.</string>
+    <string name="backup_error_read_file">Kon het geselecteerde bestand niet lezen.</string>
+    <string name="backup_error_decrypt">Ontsleutelen mislukt — de sleutel is onjuist of het bestand is beschadigd.</string>
+</resources>

@@ -1,5 +1,3 @@
-- Export to CSV with all revelant info
-- Add localisation
 - Add automatic population of end mileage
 - Add cloud store
     - Login with username and password

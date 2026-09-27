@@ -1,15 +1,19 @@
 package com.nebulousprime26.mileage_tracker
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nebulousprime26.mileage_tracker.data.AppLanguage
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.ui.LandingScreen
 import com.nebulousprime26.mileage_tracker.ui.MileageTheme
@@ -21,15 +25,37 @@ import com.nebulousprime26.mileage_tracker.ui.TripsScreen
 
 private enum class Screen { Landing, Trips, Entry, Stats, Settings }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             val vm: TripViewModel = viewModel()
             val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+            val appLanguage by vm.appLanguage.collectAsStateWithLifecycle()
 
             // Read the version once from the installed APK's manifest.
             val versionName = remember { readVersionName() }
+
+            // React to language changes: when the preference shifts, ask
+            // AppCompat to apply the new locale. This causes a
+            // configuration change, which recreates the activity, so the
+            // rest of this composable never sees a half-updated state.
+            //
+            // This only works because MainActivity extends
+            // AppCompatActivity — AppCompatDelegate.setApplicationLocales
+            // is a no-op on a plain ComponentActivity.
+            LaunchedEffect(appLanguage) {
+                val target = appLanguage.tag
+                val current = AppCompatDelegate.getApplicationLocales()
+                    .toLanguageTags()
+                    .takeIf { it.isNotEmpty() }
+                if (target != current) {
+                    AppCompatDelegate.setApplicationLocales(
+                        if (target == null) LocaleListCompat.getEmptyLocaleList()
+                        else LocaleListCompat.forLanguageTags(target),
+                    )
+                }
+            }
 
             MileageTheme(themeMode = themeMode) {
                 var screen by remember { mutableStateOf(Screen.Landing) }

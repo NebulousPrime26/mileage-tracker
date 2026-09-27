@@ -23,8 +23,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.data.TripCsv
 
 @Composable
@@ -45,8 +47,6 @@ fun LandingScreen(
         if (uri != null) viewModel.beginImport(uri)
     }
 
-    // When the ViewModel publishes a share URI, launch the system share
-    // sheet and then clear the pending state.
     LaunchedEffect(shareUri) {
         val uri = shareUri ?: return@LaunchedEffect
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -54,7 +54,7 @@ fun LandingScreen(
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Share trips"))
+        context.startActivity(Intent.createChooser(intent, null))
         viewModel.clearShareUri()
     }
 
@@ -71,7 +71,7 @@ fun LandingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Mileage",
+                    text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.headlineLarge,
                 )
 
@@ -81,7 +81,7 @@ fun LandingScreen(
                         .fillMaxWidth()
                         .padding(top = 32.dp),
                 ) {
-                    Text("Continue")
+                    Text(stringResource(R.string.landing_continue))
                 }
 
                 OutlinedButton(
@@ -90,7 +90,7 @@ fun LandingScreen(
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                 ) {
-                    Text("Settings")
+                    Text(stringResource(R.string.landing_settings))
                 }
 
                 Row(
@@ -104,27 +104,27 @@ fun LandingScreen(
                         enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Import")
+                        Text(stringResource(R.string.landing_import))
                     }
                     OutlinedButton(
                         onClick = { viewModel.exportTrips() },
                         enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Export")
+                        Text(stringResource(R.string.landing_export))
                     }
                     OutlinedButton(
                         onClick = { viewModel.shareTripsAsCsv() },
                         enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Share")
+                        Text(stringResource(R.string.landing_share))
                     }
                 }
             }
 
             Text(
-                text = "Version $versionName",
+                text = stringResource(R.string.version_format, versionName),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
