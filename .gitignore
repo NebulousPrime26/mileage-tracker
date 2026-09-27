@@ -39,3 +39,4 @@ Thumbs.db
 keystore.properties
 *.keystore
 *.jar
+aapt2-qemu-setup.sh
