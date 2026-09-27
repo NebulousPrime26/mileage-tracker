@@ -3,4 +3,3 @@
 - Add automatic population of end mileage
 - Add cloud store
     - Login with username and password
-- Add app icon

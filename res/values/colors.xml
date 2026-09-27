@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background colour for the launcher icon. Deep blue reads well
+         against both light and dark launchers, and matches the app's
+         primary colour family. -->
+    <color name="ic_launcher_background">#1976D2</color>
+</resources>
