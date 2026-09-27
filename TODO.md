@@ -1,8 +1,6 @@
 - Export to CSV with all revelant info
-- Export encrypted DB for import other device
-    - Encrypted using generated AES key 
-- Import encrypted DB with input for the AES key
 - Add localisation
 - Add automatic population of end mileage
 - Add cloud store
     - Login with username and password
+- Add app icon

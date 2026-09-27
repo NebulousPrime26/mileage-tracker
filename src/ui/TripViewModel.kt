@@ -23,9 +23,9 @@ import java.util.Calendar
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
-     * UI state for the export/import flow. Owned by the ViewModel so
-     * it survives configuration changes, and read by the landing
-     * screen to show the appropriate dialog.
+     * UI state for the export/import flow. Import replaces the entire
+     * database, so the flow includes an explicit confirmation step
+     * before anything is deleted.
      */
     sealed interface BackupState {
         /** No backup operation in progress. */
@@ -39,6 +39,9 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
 
         /** The user picked a file and needs to supply the key. */
         data class ImportAwaitingKey(val uri: Uri) : BackupState
+
+        /** The key is entered; awaiting confirmation of the destructive replace. */
+        data class ImportConfirming(val uri: Uri, val key: String) : BackupState
 
         /** Import succeeded, with the number of trips inserted. */
         data class Imported(val count: Int) : BackupState
@@ -304,19 +307,30 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Decrypts and inserts the selected backup. Each trip is inserted
-     * as a new row with an auto-generated ID.
+     * Called once the user has entered a key. Doesn't touch the database
+     * yet — it moves to a confirmation step, since the actual import
+     * wipes all existing trips.
      */
-    fun importTrips(uri: Uri, keyInput: String) {
+    fun submitImportKey(uri: Uri, keyInput: String) {
+        _backupState.value = BackupState.ImportConfirming(uri, keyInput)
+    }
+
+    /**
+     * Runs the destructive import: decrypts the backup, replaces every
+     * row in the database in a single transaction, and reports the
+     * number of trips restored.
+     */
+    fun confirmImport() {
+        val pending = _backupState.value as? BackupState.ImportConfirming ?: return
         viewModelScope.launch {
             _backupState.value = BackupState.Working
             try {
-                val key = TripCrypto.parseKey(keyInput)
+                val key = TripCrypto.parseKey(pending.key)
                     ?: throw IllegalArgumentException(
                         "The key isn't a valid 64-character hex string."
                     )
                 val bytes = getApplication<Application>().contentResolver
-                    .openInputStream(uri)?.use { it.readBytes() }
+                    .openInputStream(pending.uri)?.use { it.readBytes() }
                     ?: throw IllegalStateException(
                         "Could not read the selected file."
                     )
@@ -325,7 +339,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                         "Could not decrypt — the key is wrong or the file is damaged."
                     )
                 val importedTrips = TripBackup.deserializeTrips(json)
-                importedTrips.forEach { dao.insert(it) }
+                dao.replaceAll(importedTrips)
                 _backupState.value = BackupState.Imported(importedTrips.size)
             } catch (t: Throwable) {
                 _backupState.value = BackupState.Failed(

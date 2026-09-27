@@ -126,7 +126,50 @@ fun ImportKeyDialog(
                 onClick = { onConfirm(keyInput) },
                 enabled = isValid,
             ) {
-                Text("Import")
+                Text("Continue")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+/**
+ * Final warning before the import destroys existing data. The confirm
+ * button is deliberately worded as an action ("Replace and import")
+ * rather than a bare "OK", so the destructive nature is unmissable.
+ */
+@Composable
+fun ImportConfirmDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Replace all trips?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Importing will permanently delete every trip currently " +
+                        "in the app, including drafts, and replace them with the " +
+                        "contents of the backup.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Text(
+                    text = "This cannot be undone. Export your current trips first " +
+                        "if you want to keep them.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = "Replace and import",
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         },
         dismissButton = {

@@ -5,21 +5,26 @@ import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "trips")
 data class Trip(
     @PrimaryKey(autoGenerate = true) val id: Long,
+    /** When the trip began, as local epoch millis. */
     val startDate: Long,
+    /** When the trip ended, as local epoch millis. */
     val endDate: Long,
     val startPostalCode: String,
     val endPostalCode: String,
+    /** Optional vehicle identifier. Empty means "not specified". */
     val licensePlate: String,
     val startMileage: Double,
     val endMileage: Double,
     val privateUse: Boolean,
     val notes: String,
+    /** True when the trip was saved without completing all required fields. */
     val isDraft: Boolean,
 ) {
     val distanceMileage: Double
@@ -45,11 +50,11 @@ interface TripDao {
     @Query("SELECT endPostalCode FROM trips WHERE isDraft = 0 ORDER BY startDate DESC, id DESC LIMIT 1")
     fun getLastEndPostalCode(): Flow<String?>
 
-    /** The start postal code of the most recent completed trip — the likely end of a round trip. */
+    /** The start postal code of the most recent completed trip. */
     @Query("SELECT startPostalCode FROM trips WHERE isDraft = 0 AND startPostalCode != '' ORDER BY startDate DESC, id DESC LIMIT 1")
     fun getLastStartPostalCode(): Flow<String?>
 
-    /** The last non-blank plate on a completed trip, so it can be offered as a default. */
+    /** The last non-blank plate on a completed trip. */
     @Query("SELECT licensePlate FROM trips WHERE isDraft = 0 AND licensePlate != '' ORDER BY startDate DESC, id DESC LIMIT 1")
     fun getLastLicensePlate(): Flow<String?>
 
@@ -61,4 +66,19 @@ interface TripDao {
 
     @Query("DELETE FROM trips WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM trips")
+    suspend fun deleteAll()
+
+    /**
+     * Replaces every row with [trips] in a single transaction. If any
+     * insert fails, the whole operation rolls back and the previous
+     * contents are preserved — important for import, where deleting
+     * first and failing partway would lose the user's data.
+     */
+    @Transaction
+    suspend fun replaceAll(trips: List<Trip>) {
+        deleteAll()
+        trips.forEach { insert(it) }
+    }
 }

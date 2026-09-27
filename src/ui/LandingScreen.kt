@@ -31,8 +31,11 @@ fun LandingScreen(
     onSettings: () -> Unit = {},
 ) {
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
+    val busy = backupState is TripViewModel.BackupState.Working
 
-    // SAF picker for choosing a backup file to import.
+    // SAF picker for choosing a backup file to import. Using */* because
+    // .mlgbak is a custom extension the system can't map to a MIME type;
+    // the wrong-file case is caught by the decryption step.
     val importPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
@@ -80,10 +83,8 @@ fun LandingScreen(
                         .padding(top = 12.dp),
                 ) {
                     OutlinedButton(
-                        onClick = {
-                            importPicker.launch(arrayOf("application/octet-stream"))
-                        },
-                        enabled = backupState !is TripViewModel.BackupState.Working,
+                        onClick = { importPicker.launch(arrayOf("*/*")) },
+                        enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text("Import")
@@ -91,7 +92,7 @@ fun LandingScreen(
                     Spacer(Modifier.width(12.dp))
                     OutlinedButton(
                         onClick = { viewModel.exportTrips() },
-                        enabled = backupState !is TripViewModel.BackupState.Working,
+                        enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text("Export")
@@ -110,25 +111,34 @@ fun LandingScreen(
         }
     }
 
-    // ── Backup dialogs ───────────────────────────────────────────────
+    // ── Backup dialogs, driven by the ViewModel's state machine ─────
     when (val state = backupState) {
         is TripViewModel.BackupState.Exported -> ExportKeyDialog(
             key = state.key,
             filename = state.filename,
             onDismiss = { viewModel.dismissBackupState() },
         )
+
         is TripViewModel.BackupState.ImportAwaitingKey -> ImportKeyDialog(
-            onConfirm = { key -> viewModel.importTrips(state.uri, key) },
+            onConfirm = { key -> viewModel.submitImportKey(state.uri, key) },
             onDismiss = { viewModel.dismissBackupState() },
         )
+
+        is TripViewModel.BackupState.ImportConfirming -> ImportConfirmDialog(
+            onConfirm = { viewModel.confirmImport() },
+            onDismiss = { viewModel.dismissBackupState() },
+        )
+
         is TripViewModel.BackupState.Imported -> ImportDoneDialog(
             count = state.count,
             onDismiss = { viewModel.dismissBackupState() },
         )
+
         is TripViewModel.BackupState.Failed -> BackupErrorDialog(
             message = state.message,
             onDismiss = { viewModel.dismissBackupState() },
         )
+
         TripViewModel.BackupState.Idle,
         TripViewModel.BackupState.Working -> Unit
     }
