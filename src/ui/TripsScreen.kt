@@ -69,10 +69,6 @@ import java.util.TimeZone
 
 private const val SWEEP_DURATION_MS = 220
 
-/**
- * All the criteria a trip can be filtered on. Every field is optional —
- * null or blank means "no constraint on this field".
- */
 private data class TripFilterSpec(
     val startDateFrom: Long? = null,
     val startDateTo: Long? = null,
@@ -81,7 +77,7 @@ private data class TripFilterSpec(
     val licensePlateContains: String = "",
     val minDistanceKm: Double? = null,
     val maxDistanceKm: Double? = null,
-    val privateOnly: Boolean? = null,   // null = both, true = private, false = business
+    val privateOnly: Boolean? = null,
     val includeDrafts: Boolean = false,
 ) {
     val isActive: Boolean
@@ -109,7 +105,6 @@ private data class TripFilterSpec(
         ).count { it }
 }
 
-/** Applies the spec to a list of trips. */
 private fun List<Trip>.applyFilter(spec: TripFilterSpec): List<Trip> = filter { trip ->
     (spec.includeDrafts || !trip.isDraft) &&
         (spec.startDateFrom == null || trip.startDate >= spec.startDateFrom) &&
@@ -179,15 +174,6 @@ fun TripsScreen(
                     TextButton(onClick = onBack) { Text("Back") }
                 },
                 actions = {
-                    TextButton(onClick = { showFilterSheet = true }) {
-                        Text(
-                            text = if (filterSpec.isActive) {
-                                "Filter (${filterSpec.activeCount})"
-                            } else {
-                                "Filter"
-                            },
-                        )
-                    }
                     TextButton(onClick = onStats) { Text("Stats") }
                 },
             )
@@ -195,8 +181,33 @@ fun TripsScreen(
         floatingActionButtonPosition =
             if (fabOnRight) FabPosition.End else FabPosition.Start,
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = onAddTrip) {
-                Text("Add trip")
+            // Two FABs sit side by side and move together with the
+            // position setting. The order inside the Row flips so the
+            // filter FAB is always the inner one — nearest the centre
+            // of the screen — while Add trip stays at the outer edge.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (fabOnRight) {
+                    FilterFab(
+                        isActive = filterSpec.isActive,
+                        activeCount = filterSpec.activeCount,
+                        onClick = { showFilterSheet = true },
+                    )
+                    ExtendedFloatingActionButton(onClick = onAddTrip) {
+                        Text("Add trip")
+                    }
+                } else {
+                    ExtendedFloatingActionButton(onClick = onAddTrip) {
+                        Text("Add trip")
+                    }
+                    FilterFab(
+                        isActive = filterSpec.isActive,
+                        activeCount = filterSpec.activeCount,
+                        onClick = { showFilterSheet = true },
+                    )
+                }
             }
         },
     ) { padding ->
@@ -270,13 +281,38 @@ fun TripsScreen(
     }
 }
 
+/**
+ * The filter FAB. Uses the same ExtendedFAB shape as Add trip so the
+ * pair reads as a matched set, but with a subdued container when
+ * inactive and the app's primary tint when a filter is applied.
+ */
+@Composable
+private fun FilterFab(
+    isActive: Boolean,
+    activeCount: Int,
+    onClick: () -> Unit,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        containerColor = if (isActive) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        contentColor = if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+    ) {
+        Text(
+            text = if (isActive) "Filter ($activeCount)" else "Filter",
+        )
+    }
+}
+
 // ── Filter sheet ─────────────────────────────────────────────────────
 
-/**
- * Bottom sheet holding every filter criterion. Laid out to fit on one
- * screen without scrolling: four compact sections plus a header and an
- * action row. Changes are staged locally and only applied on Apply.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FilterSheet(
@@ -301,7 +337,6 @@ private fun FilterSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            // ── Header ──────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -319,7 +354,6 @@ private fun FilterSheet(
                 }
             }
 
-            // ── Dates ───────────────────────────────────────────────
             FilterSection(label = "Dates") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DateField(
@@ -337,7 +371,6 @@ private fun FilterSheet(
                 }
             }
 
-            // ── Route ───────────────────────────────────────────────
             FilterSection(label = "Route") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CompactField(
@@ -355,7 +388,6 @@ private fun FilterSheet(
                 }
             }
 
-            // ── Vehicle & distance ──────────────────────────────────
             FilterSection(label = "Vehicle & distance") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CompactField(
@@ -379,7 +411,6 @@ private fun FilterSheet(
                 }
             }
 
-            // ── Category ────────────────────────────────────────────
             FilterSection(label = "Category") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -412,7 +443,6 @@ private fun FilterSheet(
                 }
             }
 
-            // ── Actions ─────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -435,7 +465,6 @@ private fun FilterSheet(
         }
     }
 
-    // ── Date pickers ─────────────────────────────────────────────────
     if (showStartDatePicker) {
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = spec.startDateFrom?.let { toUtcDateMillis(it) }
@@ -483,11 +512,6 @@ private fun FilterSheet(
     }
 }
 
-/**
- * A labelled group of fields inside the filter sheet. The caption is
- * rendered in small, letter-spaced capitals to give the sheet a
- * consistent visual rhythm without heavy headings.
- */
 @Composable
 private fun FilterSection(
     label: String,
