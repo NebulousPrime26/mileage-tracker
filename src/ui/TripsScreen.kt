@@ -1,9 +1,15 @@
 package com.nebulousprime26.mileage_tracker.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,45 +19,124 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
+import kotlin.math.roundToInt
 
 private const val SWEEP_DURATION_MS = 220
+
+private const val FILTER_SHEET_ANIM_MS = 350
+private const val FILTER_SHEET_SNAP_MS = 200
+private const val DISMISS_THRESHOLD_FRACTION = 0.3f
+private const val DISMISS_VELOCITY_THRESHOLD = 800f
+
+private data class TripFilterSpec(
+    val startDateFrom: Long? = null,
+    val startDateTo: Long? = null,
+    val startPostalContains: String = "",
+    val endPostalContains: String = "",
+    val licensePlateContains: String = "",
+    val minDistanceKm: Double? = null,
+    val maxDistanceKm: Double? = null,
+    val privateOnly: Boolean? = null,
+    val includeDrafts: Boolean = false,
+) {
+    val isActive: Boolean
+        get() = startDateFrom != null ||
+            startDateTo != null ||
+            startPostalContains.isNotBlank() ||
+            endPostalContains.isNotBlank() ||
+            licensePlateContains.isNotBlank() ||
+            minDistanceKm != null ||
+            maxDistanceKm != null ||
+            privateOnly != null ||
+            includeDrafts
+
+    val activeCount: Int
+        get() = listOf(
+            startDateFrom != null,
+            startDateTo != null,
+            startPostalContains.isNotBlank(),
+            endPostalContains.isNotBlank(),
+            licensePlateContains.isNotBlank(),
+            minDistanceKm != null,
+            maxDistanceKm != null,
+            privateOnly != null,
+            includeDrafts,
+        ).count { it }
+}
+
+private fun List<Trip>.applyFilter(spec: TripFilterSpec): List<Trip> = filter { trip ->
+    (spec.includeDrafts || !trip.isDraft) &&
+        (spec.startDateFrom == null || trip.startDate >= spec.startDateFrom) &&
+        (spec.startDateTo == null || trip.startDate <= spec.startDateTo) &&
+        (spec.startPostalContains.isBlank() ||
+            trip.startPostalCode.contains(spec.startPostalContains, ignoreCase = true)) &&
+        (spec.endPostalContains.isBlank() ||
+            trip.endPostalCode.contains(spec.endPostalContains, ignoreCase = true)) &&
+        (spec.licensePlateContains.isBlank() ||
+            trip.licensePlate.contains(spec.licensePlateContains, ignoreCase = true)) &&
+        (spec.minDistanceKm == null || trip.distanceMileage >= spec.minDistanceKm) &&
+        (spec.maxDistanceKm == null || trip.distanceMileage <= spec.maxDistanceKm) &&
+        (spec.privateOnly == null || trip.privateUse == spec.privateOnly)
+}
 
 private fun formatDateRange(start: Long, end: Long): String {
     val dayFmt = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
@@ -84,8 +169,14 @@ fun TripsScreen(
     val trips by viewModel.trips.collectAsStateWithLifecycle()
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
 
+    var filterSpec by remember { mutableStateOf(TripFilterSpec()) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     var selectedTrip by remember { mutableStateOf<Trip?>(null) }
     var tripPendingDelete by remember { mutableStateOf<Trip?>(null) }
+
+    val filteredTrips = remember(trips, filterSpec) {
+        trips.applyFilter(filterSpec)
+    }
 
     LaunchedEffect(selectedTrip) {
         val trip = selectedTrip ?: return@LaunchedEffect
@@ -93,64 +184,104 @@ fun TripsScreen(
         onEditTrip(trip)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Trips") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
-                },
-                actions = {
-                    TextButton(onClick = onStats) { Text("Stats") }
-                },
-            )
-        },
-        floatingActionButtonPosition =
-            if (fabOnRight) FabPosition.End else FabPosition.Start,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = onAddTrip) {
-                Text("Add trip")
-            }
-        },
-    ) { padding ->
-        if (trips.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No trips yet.\nTap \"Add trip\" to create one.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Trips") },
+                    navigationIcon = {
+                        TextButton(onClick = onBack) { Text("Back") }
+                    },
+                    actions = {
+                        TextButton(onClick = onStats) { Text("Stats") }
+                    },
                 )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 16.dp,
-                    bottom = 88.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(trips, key = { it.id }) { trip ->
-                    TripRow(
-                        trip = trip,
-                        isSelected = selectedTrip?.id == trip.id,
-                        onClick = {
-                            if (selectedTrip == null) selectedTrip = trip
+            },
+            floatingActionButtonPosition =
+                if (fabOnRight) FabPosition.End else FabPosition.Start,
+            floatingActionButton = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (fabOnRight) {
+                        FilterFab(
+                            isActive = filterSpec.isActive,
+                            activeCount = filterSpec.activeCount,
+                            onClick = { showFilterSheet = true },
+                        )
+                        ExtendedFloatingActionButton(onClick = onAddTrip) {
+                            Text("Add trip")
+                        }
+                    } else {
+                        ExtendedFloatingActionButton(onClick = onAddTrip) {
+                            Text("Add trip")
+                        }
+                        FilterFab(
+                            isActive = filterSpec.isActive,
+                            activeCount = filterSpec.activeCount,
+                            onClick = { showFilterSheet = true },
+                        )
+                    }
+                }
+            },
+        ) { padding ->
+            if (filteredTrips.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = when {
+                            trips.isEmpty() ->
+                                "No trips yet.\nTap \"Add trip\" to create one."
+                            filterSpec.isActive ->
+                                "No trips match the current filter."
+                            else ->
+                                "No trips."
                         },
-                        onDelete = { tripPendingDelete = trip },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 88.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(filteredTrips, key = { it.id }) { trip ->
+                        TripRow(
+                            trip = trip,
+                            isSelected = selectedTrip?.id == trip.id,
+                            onClick = {
+                                if (selectedTrip == null) selectedTrip = trip
+                            },
+                            onDelete = { tripPendingDelete = trip },
+                        )
+                    }
                 }
             }
         }
+
+        FilterSheetOverlay(
+            visible = showFilterSheet,
+            initial = filterSpec,
+            onApply = {
+                filterSpec = it
+                showFilterSheet = false
+            },
+            onDismiss = { showFilterSheet = false },
+        )
     }
 
     tripPendingDelete?.let { trip ->
@@ -164,6 +295,459 @@ fun TripsScreen(
         )
     }
 }
+
+@Composable
+private fun FilterFab(
+    isActive: Boolean,
+    activeCount: Int,
+    onClick: () -> Unit,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        containerColor = if (isActive) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        contentColor = if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+    ) {
+        Text(
+            text = if (isActive) "Filter ($activeCount)" else "Filter",
+        )
+    }
+}
+
+// ── Filter sheet overlay ─────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterSheetOverlay(
+    visible: Boolean,
+    initial: TripFilterSpec,
+    onApply: (TripFilterSpec) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+
+    var spec by remember { mutableStateOf(initial) }
+    LaunchedEffect(visible) {
+        if (visible) spec = initial
+    }
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+
+    var sheetHeightPx by remember { mutableStateOf(0f) }
+    var hasBeenMeasured by remember { mutableStateOf(false) }
+
+    val offsetY = remember { Animatable(0f) }
+
+    LaunchedEffect(visible, sheetHeightPx) {
+        if (sheetHeightPx == 0f) return@LaunchedEffect
+        if (!hasBeenMeasured) {
+            hasBeenMeasured = true
+            offsetY.snapTo(if (visible) 0f else sheetHeightPx)
+            return@LaunchedEffect
+        }
+        if (visible) {
+            offsetY.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(FILTER_SHEET_ANIM_MS, easing = FastOutSlowInEasing),
+            )
+        } else {
+            offsetY.animateTo(
+                targetValue = sheetHeightPx,
+                animationSpec = tween(FILTER_SHEET_ANIM_MS, easing = FastOutSlowInEasing),
+            )
+        }
+    }
+
+    val progress = if (sheetHeightPx > 0f) {
+        (1f - offsetY.value / sheetHeightPx).coerceIn(0f, 1f)
+    } else {
+        if (visible) 1f else 0f
+    }
+
+    val scrimInteraction = remember { MutableInteractionSource() }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // ── Scrim ────────────────────────────────────────────────
+        if (progress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f * progress),
+                    )
+                    .clickable(
+                        interactionSource = scrimInteraction,
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+            )
+        }
+
+        // ── Sheet ────────────────────────────────────────────────
+        // No verticalScroll on the content: the layout fits without
+        // it, and a scroll modifier would intercept the vertical drag
+        // gesture before the draggable below ever sees it.
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { sheetHeightPx = it.height.toFloat() }
+                .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    state = rememberDraggableState { delta ->
+                        // Track the finger directly. snapTo cancels any
+                        // in-flight animation, so a drag mid-slide takes
+                        // over cleanly.
+                        val newValue = (offsetY.value + delta)
+                            .coerceIn(0f, sheetHeightPx)
+                        scope.launch { offsetY.snapTo(newValue) }
+                    },
+                    onDragStopped = { velocity ->
+                        scope.launch {
+                            val pastDistance =
+                                offsetY.value > sheetHeightPx * DISMISS_THRESHOLD_FRACTION
+                            val pastVelocity = velocity > DISMISS_VELOCITY_THRESHOLD
+                            if (pastDistance || pastVelocity) {
+                                offsetY.animateTo(
+                                    targetValue = sheetHeightPx,
+                                    animationSpec = tween(
+                                        FILTER_SHEET_SNAP_MS,
+                                        easing = FastOutSlowInEasing,
+                                    ),
+                                )
+                                onApply(spec)
+                            } else {
+                                offsetY.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(
+                                        FILTER_SHEET_SNAP_MS,
+                                        easing = FastOutSlowInEasing,
+                                    ),
+                                )
+                            }
+                        }
+                    },
+                ),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 3.dp,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 12.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(32.dp)
+                        .height(4.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                .copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(2.dp),
+                        ),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Filter trips",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = { spec = TripFilterSpec() },
+                        enabled = spec.isActive,
+                    ) {
+                        Text("Reset")
+                    }
+                }
+
+                FilterSection(label = "Dates") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DateField(
+                            label = "From",
+                            millis = spec.startDateFrom,
+                            modifier = Modifier.weight(1f),
+                            onClick = { showStartDatePicker = true },
+                        )
+                        DateField(
+                            label = "To",
+                            millis = spec.startDateTo,
+                            modifier = Modifier.weight(1f),
+                            onClick = { showEndDatePicker = true },
+                        )
+                    }
+                }
+
+                FilterSection(label = "Route") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CompactField(
+                            value = spec.startPostalContains,
+                            onValueChange = {
+                                spec = spec.copy(startPostalContains = it)
+                            },
+                            label = "Start postal",
+                            modifier = Modifier.weight(1f),
+                        )
+                        CompactField(
+                            value = spec.endPostalContains,
+                            onValueChange = {
+                                spec = spec.copy(endPostalContains = it)
+                            },
+                            label = "End postal",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                FilterSection(label = "Vehicle & distance") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CompactField(
+                            value = spec.licensePlateContains,
+                            onValueChange = {
+                                spec = spec.copy(licensePlateContains = it)
+                            },
+                            label = "Plate",
+                            modifier = Modifier.weight(1.2f),
+                        )
+                        CompactNumberField(
+                            value = spec.minDistanceKm,
+                            onValueChange = { spec = spec.copy(minDistanceKm = it) },
+                            label = "Min km",
+                            modifier = Modifier.weight(1f),
+                        )
+                        CompactNumberField(
+                            value = spec.maxDistanceKm,
+                            onValueChange = { spec = spec.copy(maxDistanceKm = it) },
+                            label = "Max km",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                FilterSection(label = "Category") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            CategoryChip("Both", spec.privateOnly == null) {
+                                spec = spec.copy(privateOnly = null)
+                            }
+                            CategoryChip("Private", spec.privateOnly == true) {
+                                spec = spec.copy(privateOnly = true)
+                            }
+                            CategoryChip("Business", spec.privateOnly == false) {
+                                spec = spec.copy(privateOnly = false)
+                            }
+                        }
+                        Text(
+                            text = "Drafts",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Switch(
+                            checked = spec.includeDrafts,
+                            onCheckedChange = { spec = spec.copy(includeDrafts = it) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = { onApply(spec) },
+                        modifier = Modifier.weight(2f),
+                    ) {
+                        Text("Apply")
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Date pickers ─────────────────────────────────────────────
+    if (showStartDatePicker) {
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = spec.startDateFrom?.let { toUtcDateMillis(it) }
+                ?: System.currentTimeMillis(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let {
+                        spec = spec.copy(startDateFrom = startOfDayLocal(it))
+                    }
+                    showStartDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+
+    if (showEndDatePicker) {
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = spec.startDateTo?.let { toUtcDateMillis(it) }
+                ?: System.currentTimeMillis(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let {
+                        spec = spec.copy(startDateTo = endOfDayLocal(it))
+                    }
+                    showEndDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+}
+
+// ── Filter sheet inputs ──────────────────────────────────────────────
+
+@Composable
+private fun FilterSection(
+    label: String,
+    content: @Composable () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
+            color = MaterialTheme.colorScheme.primary,
+        )
+        content()
+    }
+}
+
+@Composable
+private fun DateField(
+    label: String,
+    millis: Long?,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val formatter = remember { SimpleDateFormat("d MMM yyyy", Locale.getDefault()) }
+    val text = millis?.let { formatter.format(Date(it)) } ?: ""
+
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            placeholder = { Text("Any") },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.DateRange,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onClick),
+        )
+    }
+}
+
+@Composable
+private fun CompactField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Characters,
+        ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CompactNumberField(
+    value: Double?,
+    onValueChange: (Double?) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value?.toString() ?: "",
+        onValueChange = { text -> onValueChange(text.toDoubleOrNull()) },
+        label = { Text(label) },
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CategoryChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+    )
+}
+
+// ── Delete dialog ────────────────────────────────────────────────────
 
 @Composable
 private fun DeleteConfirmDialog(
@@ -247,8 +831,6 @@ private fun TripSummary(trip: Trip) {
                 text = "${trip.distanceMileage} km",
                 style = MaterialTheme.typography.bodyMedium,
             )
-            // License plate sits between distance and status so the row
-            // reads left-to-right as "how far, in what, for whom".
             if (trip.licensePlate.isNotBlank()) {
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -337,4 +919,48 @@ private fun TripRow(
             }
         }
     }
+}
+
+// ── Date helpers ─────────────────────────────────────────────────────
+
+private fun toUtcDateMillis(localMillis: Long): Long {
+    val local = Calendar.getInstance().apply { timeInMillis = localMillis }
+    return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        clear()
+        set(
+            local.get(Calendar.YEAR),
+            local.get(Calendar.MONTH),
+            local.get(Calendar.DAY_OF_MONTH),
+        )
+    }.timeInMillis
+}
+
+private fun startOfDayLocal(utcDateMillis: Long): Long {
+    val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        timeInMillis = utcDateMillis
+    }
+    return Calendar.getInstance().apply {
+        set(Calendar.YEAR, utc.get(Calendar.YEAR))
+        set(Calendar.MONTH, utc.get(Calendar.MONTH))
+        set(Calendar.DAY_OF_MONTH, utc.get(Calendar.DAY_OF_MONTH))
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+private fun endOfDayLocal(utcDateMillis: Long): Long {
+    val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        timeInMillis = utcDateMillis
+    }
+    return Calendar.getInstance().apply {
+        set(Calendar.YEAR, utc.get(Calendar.YEAR))
+        set(Calendar.MONTH, utc.get(Calendar.MONTH))
+        set(Calendar.DAY_OF_MONTH, utc.get(Calendar.DAY_OF_MONTH))
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
+        set(Calendar.MILLISECOND, 999)
+    }.timeInMillis
 }
