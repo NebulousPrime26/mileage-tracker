@@ -9,6 +9,7 @@ import com.nebulousprime26.mileage_tracker.data.ThemeMode
 import com.nebulousprime26.mileage_tracker.data.Trip
 import com.nebulousprime26.mileage_tracker.data.TripBackup
 import com.nebulousprime26.mileage_tracker.data.TripCrypto
+import com.nebulousprime26.mileage_tracker.data.TripCsv
 import com.nebulousprime26.mileage_tracker.data.TripDao
 import com.nebulousprime26.mileage_tracker.data.getDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -403,6 +404,45 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
     /** Clears any pending export/import dialog state. */
     fun dismissBackupState() {
         _backupState.value = BackupState.Idle
+    }
+
+    // ── CSV share ────────────────────────────────────────────────────
+
+    /**
+     * Set to a content:// URI when a CSV has been prepared for sharing.
+     * The UI observes this, launches the share sheet, and then clears
+     * it via [clearShareUri].
+     */
+    private val _shareUri = MutableStateFlow<Uri?>(null)
+    val shareUri: StateFlow<Uri?> = _shareUri
+
+    /**
+     * Builds a CSV of all trips and writes it to the cache, exposing
+     * the resulting URI via [shareUri].
+     */
+    fun shareTripsAsCsv() {
+        viewModelScope.launch {
+            try {
+                val allTrips = dao.getAll().first()
+                if (allTrips.isEmpty()) {
+                    _backupState.value = BackupState.Failed("No trips to share.")
+                    return@launch
+                }
+                val csv = TripCsv.build(allTrips)
+                val filename = TripCsv.defaultFilename()
+                val uri = TripCsv.writeToCache(getApplication(), filename, csv)
+                _shareUri.value = uri
+            } catch (t: Throwable) {
+                _backupState.value = BackupState.Failed(
+                    t.message ?: "Could not prepare the CSV."
+                )
+            }
+        }
+    }
+
+    /** Clears the pending share URI once the share sheet has been launched. */
+    fun clearShareUri() {
+        _shareUri.value = null
     }
 
     // ── Mutations ────────────────────────────────────────────────────
