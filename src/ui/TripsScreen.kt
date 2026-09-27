@@ -18,22 +18,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -56,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
@@ -82,7 +84,6 @@ private data class TripFilterSpec(
     val privateOnly: Boolean? = null,   // null = both, true = private, false = business
     val includeDrafts: Boolean = false,
 ) {
-    /** True when at least one criterion is set. */
     val isActive: Boolean
         get() = startDateFrom != null ||
             startDateTo != null ||
@@ -94,7 +95,6 @@ private data class TripFilterSpec(
             privateOnly != null ||
             includeDrafts
 
-    /** Number of individual criteria set, for the badge on the filter button. */
     val activeCount: Int
         get() = listOf(
             startDateFrom != null,
@@ -247,7 +247,6 @@ fun TripsScreen(
         }
     }
 
-    // ── Filter sheet ─────────────────────────────────────────────────
     if (showFilterSheet) {
         FilterSheet(
             initial = filterSpec,
@@ -271,9 +270,12 @@ fun TripsScreen(
     }
 }
 
+// ── Filter sheet ─────────────────────────────────────────────────────
+
 /**
- * Bottom sheet holding all filter criteria. Changes are staged locally
- * and only applied when the user taps Apply.
+ * Bottom sheet holding every filter criterion. Laid out to fit on one
+ * screen without scrolling: four compact sections plus a header and an
+ * action row. Changes are staged locally and only applied on Apply.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -295,185 +297,137 @@ private fun FilterSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Text(
-                text = "Filter trips",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-
-            // ── Date range ──────────────────────────────────────────
-            Text("Date range", style = MaterialTheme.typography.titleSmall)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterDateField(
-                    label = "From",
-                    millis = spec.startDateFrom,
-                    modifier = Modifier.weight(1f),
-                    onClick = { showStartDatePicker = true },
-                )
-                FilterDateField(
-                    label = "To",
-                    millis = spec.startDateTo,
-                    modifier = Modifier.weight(1f),
-                    onClick = { showEndDatePicker = true },
-                )
-            }
-
-            if (spec.startDateFrom != null || spec.startDateTo != null) {
-                TextButton(onClick = {
-                    spec = spec.copy(startDateFrom = null, startDateTo = null)
-                }) {
-                    Text("Clear dates")
-                }
-            }
-
-            HorizontalDivider()
-
-            // ── Postal codes ────────────────────────────────────────
-            Text("Postal codes", style = MaterialTheme.typography.titleSmall)
-
-            OutlinedTextField(
-                value = spec.startPostalContains,
-                onValueChange = { spec = spec.copy(startPostalContains = it) },
-                label = { Text("Start postal contains") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = spec.endPostalContains,
-                onValueChange = { spec = spec.copy(endPostalContains = it) },
-                label = { Text("End postal contains") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            HorizontalDivider()
-
-            // ── License plate ───────────────────────────────────────
-            Text("Vehicle", style = MaterialTheme.typography.titleSmall)
-
-            OutlinedTextField(
-                value = spec.licensePlateContains,
-                onValueChange = { spec = spec.copy(licensePlateContains = it) },
-                label = { Text("License plate contains") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            HorizontalDivider()
-
-            // ── Mileage range ───────────────────────────────────────
-            Text("Distance (km)", style = MaterialTheme.typography.titleSmall)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = spec.minDistanceKm?.toString() ?: "",
-                    onValueChange = { text ->
-                        spec = spec.copy(minDistanceKm = text.toDoubleOrNull())
-                    },
-                    label = { Text("Min") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = spec.maxDistanceKm?.toString() ?: "",
-                    onValueChange = { text ->
-                        spec = spec.copy(maxDistanceKm = text.toDoubleOrNull())
-                    },
-                    label = { Text("Max") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            HorizontalDivider()
-
-            // ── Category ────────────────────────────────────────────
-            Text("Category", style = MaterialTheme.typography.titleSmall)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FilterChoiceChip(
-                    label = "Both",
-                    selected = spec.privateOnly == null,
-                    onClick = { spec = spec.copy(privateOnly = null) },
-                )
-                FilterChoiceChip(
-                    label = "Private",
-                    selected = spec.privateOnly == true,
-                    onClick = { spec = spec.copy(privateOnly = true) },
-                )
-                FilterChoiceChip(
-                    label = "Business",
-                    selected = spec.privateOnly == false,
-                    onClick = { spec = spec.copy(privateOnly = false) },
-                )
-            }
-
-            HorizontalDivider()
-
-            // ── Drafts ──────────────────────────────────────────────
+            // ── Header ──────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Include drafts",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "Filter trips",
+                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f),
                 )
-                Switch(
-                    checked = spec.includeDrafts,
-                    onCheckedChange = { spec = spec.copy(includeDrafts = it) },
-                )
+                TextButton(
+                    onClick = { spec = TripFilterSpec() },
+                    enabled = spec.isActive,
+                ) {
+                    Text("Reset")
+                }
+            }
+
+            // ── Dates ───────────────────────────────────────────────
+            FilterSection(label = "Dates") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DateField(
+                        label = "From",
+                        millis = spec.startDateFrom,
+                        modifier = Modifier.weight(1f),
+                        onClick = { showStartDatePicker = true },
+                    )
+                    DateField(
+                        label = "To",
+                        millis = spec.startDateTo,
+                        modifier = Modifier.weight(1f),
+                        onClick = { showEndDatePicker = true },
+                    )
+                }
+            }
+
+            // ── Route ───────────────────────────────────────────────
+            FilterSection(label = "Route") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CompactField(
+                        value = spec.startPostalContains,
+                        onValueChange = { spec = spec.copy(startPostalContains = it) },
+                        label = "Start postal",
+                        modifier = Modifier.weight(1f),
+                    )
+                    CompactField(
+                        value = spec.endPostalContains,
+                        onValueChange = { spec = spec.copy(endPostalContains = it) },
+                        label = "End postal",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            // ── Vehicle & distance ──────────────────────────────────
+            FilterSection(label = "Vehicle & distance") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CompactField(
+                        value = spec.licensePlateContains,
+                        onValueChange = { spec = spec.copy(licensePlateContains = it) },
+                        label = "Plate",
+                        modifier = Modifier.weight(1.2f),
+                    )
+                    CompactNumberField(
+                        value = spec.minDistanceKm,
+                        onValueChange = { spec = spec.copy(minDistanceKm = it) },
+                        label = "Min km",
+                        modifier = Modifier.weight(1f),
+                    )
+                    CompactNumberField(
+                        value = spec.maxDistanceKm,
+                        onValueChange = { spec = spec.copy(maxDistanceKm = it) },
+                        label = "Max km",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            // ── Category ────────────────────────────────────────────
+            FilterSection(label = "Category") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        CategoryChip("Both", spec.privateOnly == null) {
+                            spec = spec.copy(privateOnly = null)
+                        }
+                        CategoryChip("Private", spec.privateOnly == true) {
+                            spec = spec.copy(privateOnly = true)
+                        }
+                        CategoryChip("Business", spec.privateOnly == false) {
+                            spec = spec.copy(privateOnly = false)
+                        }
+                    }
+                    Text(
+                        text = "Drafts",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Switch(
+                        checked = spec.includeDrafts,
+                        onCheckedChange = { spec = spec.copy(includeDrafts = it) },
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
             }
 
             // ── Actions ─────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
-                    onClick = { spec = TripFilterSpec() },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Reset")
-                }
-                TextButton(
+                OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("Cancel")
                 }
-                TextButton(
+                Button(
                     onClick = { onApply(spec) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(2f),
                 ) {
                     Text("Apply")
                 }
@@ -529,23 +483,28 @@ private fun FilterSheet(
     }
 }
 
-/** A small chip used for the mutually-exclusive category choice. */
+/**
+ * A labelled group of fields inside the filter sheet. The caption is
+ * rendered in small, letter-spaced capitals to give the sheet a
+ * consistent visual rhythm without heavy headings.
+ */
 @Composable
-private fun FilterChoiceChip(
+private fun FilterSection(
     label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
+    content: @Composable () -> Unit,
 ) {
-    androidx.compose.material3.FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
+            color = MaterialTheme.colorScheme.primary,
+        )
+        content()
+    }
 }
 
-/** A read-only date field that opens a picker when tapped. */
 @Composable
-private fun FilterDateField(
+private fun DateField(
     label: String,
     millis: Long?,
     modifier: Modifier = Modifier,
@@ -561,6 +520,13 @@ private fun FilterDateField(
             readOnly = true,
             label = { Text(label) },
             placeholder = { Text("Any") },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.DateRange,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -571,6 +537,59 @@ private fun FilterDateField(
         )
     }
 }
+
+@Composable
+private fun CompactField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Characters,
+        ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CompactNumberField(
+    value: Double?,
+    onValueChange: (Double?) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value?.toString() ?: "",
+        onValueChange = { text -> onValueChange(text.toDoubleOrNull()) },
+        label = { Text(label) },
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CategoryChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+    )
+}
+
+// ── Delete dialog & rows (unchanged) ─────────────────────────────────
 
 @Composable
 private fun DeleteConfirmDialog(
