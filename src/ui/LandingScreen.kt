@@ -1,5 +1,7 @@
 package com.nebulousprime26.mileage_tracker.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,24 +17,35 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun LandingScreen(
     versionName: String,
+    viewModel: TripViewModel,
     onContinue: () -> Unit = {},
     onSettings: () -> Unit = {},
-    onImport: () -> Unit = {},
-    onExport: () -> Unit = {},
 ) {
+    val backupState by viewModel.backupState.collectAsStateWithLifecycle()
+    val busy = backupState is TripViewModel.BackupState.Working
+
+    // SAF picker for choosing a backup file to import. Using */* because
+    // .mlgbak is a custom extension the system can't map to a MIME type;
+    // the wrong-file case is caught by the decryption step.
+    val importPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) viewModel.beginImport(uri)
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        // Box so the version line can be pinned to the bottom while the
-        // buttons stay vertically centred.
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
@@ -70,14 +83,16 @@ fun LandingScreen(
                         .padding(top = 12.dp),
                 ) {
                     OutlinedButton(
-                        onClick = onImport,
+                        onClick = { importPicker.launch(arrayOf("*/*")) },
+                        enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text("Import")
                     }
                     Spacer(Modifier.width(12.dp))
                     OutlinedButton(
-                        onClick = onExport,
+                        onClick = { viewModel.exportTrips() },
+                        enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text("Export")
@@ -94,5 +109,37 @@ fun LandingScreen(
                     .padding(bottom = 24.dp),
             )
         }
+    }
+
+    // ── Backup dialogs, driven by the ViewModel's state machine ─────
+    when (val state = backupState) {
+        is TripViewModel.BackupState.Exported -> ExportKeyDialog(
+            key = state.key,
+            filename = state.filename,
+            onDismiss = { viewModel.dismissBackupState() },
+        )
+
+        is TripViewModel.BackupState.ImportAwaitingKey -> ImportKeyDialog(
+            onConfirm = { key -> viewModel.submitImportKey(state.uri, key) },
+            onDismiss = { viewModel.dismissBackupState() },
+        )
+
+        is TripViewModel.BackupState.ImportConfirming -> ImportConfirmDialog(
+            onConfirm = { viewModel.confirmImport() },
+            onDismiss = { viewModel.dismissBackupState() },
+        )
+
+        is TripViewModel.BackupState.Imported -> ImportDoneDialog(
+            count = state.count,
+            onDismiss = { viewModel.dismissBackupState() },
+        )
+
+        is TripViewModel.BackupState.Failed -> BackupErrorDialog(
+            message = state.message,
+            onDismiss = { viewModel.dismissBackupState() },
+        )
+
+        TripViewModel.BackupState.Idle,
+        TripViewModel.BackupState.Working -> Unit
     }
 }
