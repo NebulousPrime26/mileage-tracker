@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Files in cacheDir/shared/ can be exposed via FileProvider for
+         sharing. Cache is used rather than Downloads because a shared
+         CSV is transient — the receiving app copies what it needs. -->
+    <cache-path name="shared" path="shared/" />
+</paths>
