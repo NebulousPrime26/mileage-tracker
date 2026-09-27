@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
-@Database(entities = [Trip::class], version = 4)
+@Database(entities = [Trip::class], version = 1)
 abstract class MileageDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
 }
