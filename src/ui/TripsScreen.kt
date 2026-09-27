@@ -64,8 +64,10 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,6 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -86,6 +89,8 @@ private const val FILTER_SHEET_ANIM_MS = 350
 private const val FILTER_SHEET_SNAP_MS = 200
 private const val DISMISS_THRESHOLD_FRACTION = 0.3f
 private const val DISMISS_VELOCITY_THRESHOLD = 800f
+
+private val distanceFormatter = DecimalFormat("#,##0.#")
 
 private data class TripFilterSpec(
     val startDateFrom: Long? = null,
@@ -375,7 +380,6 @@ private fun FilterSheetOverlay(
     val scrimInteraction = remember { MutableInteractionSource() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // ── Scrim ────────────────────────────────────────────────
         if (progress > 0f) {
             Box(
                 modifier = Modifier
@@ -391,10 +395,6 @@ private fun FilterSheetOverlay(
             )
         }
 
-        // ── Sheet ────────────────────────────────────────────────
-        // No verticalScroll on the content: the layout fits without
-        // it, and a scroll modifier would intercept the vertical drag
-        // gesture before the draggable below ever sees it.
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -404,9 +404,6 @@ private fun FilterSheetOverlay(
                 .draggable(
                     orientation = Orientation.Vertical,
                     state = rememberDraggableState { delta ->
-                        // Track the finger directly. snapTo cancels any
-                        // in-flight animation, so a drag mid-slide takes
-                        // over cleanly.
                         val newValue = (offsetY.value + delta)
                             .coerceIn(0f, sheetHeightPx)
                         scope.launch { offsetY.snapTo(newValue) }
@@ -596,7 +593,6 @@ private fun FilterSheetOverlay(
         }
     }
 
-    // ── Date pickers ─────────────────────────────────────────────
     if (showStartDatePicker) {
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = spec.startDateFrom?.let { toUtcDateMillis(it) }
@@ -759,9 +755,8 @@ private fun DeleteConfirmDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete trip?") },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 TripSummary(trip = trip)
-                Spacer(Modifier.height(16.dp))
                 Text(
                     text = "This cannot be undone.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -783,6 +778,9 @@ private fun DeleteConfirmDialog(
     )
 }
 
+/**
+ * A compact, structured summary of a trip, used in the delete dialog.
+ */
 @Composable
 private fun TripSummary(trip: Trip) {
     val dateRangeText = remember(trip.startDate, trip.endDate) {
@@ -791,8 +789,9 @@ private fun TripSummary(trip: Trip) {
 
     val startText = trip.startPostalCode.ifBlank { "—" }
     val endText = trip.endPostalCode.ifBlank { "—" }
+    val hasPlate = trip.licensePlate.isNotBlank()
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = startText,
@@ -804,49 +803,44 @@ private fun TripSummary(trip: Trip) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .padding(horizontal = 6.dp)
-                    .size(18.dp),
+                    .size(16.dp),
             )
             Text(
                 text = endText,
                 style = MaterialTheme.typography.titleMedium,
             )
-
             if (trip.isDraft) {
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Draft",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "DRAFT",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 0.6.sp,
+                    ),
                     color = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }
 
+        if (hasPlate) {
+            Text(
+                text = trip.licensePlate,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         Text(
             text = dateRangeText,
             style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        if (trip.privateUse) {
             Text(
-                text = "${trip.distanceMileage} km",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Private",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
             )
-            if (trip.licensePlate.isNotBlank()) {
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = trip.licensePlate,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (trip.privateUse) {
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Private",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
         }
     }
 }
@@ -907,15 +901,81 @@ private fun TripRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(modifier = Modifier.weight(1f)) {
-                TripSummary(trip = trip)
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                // ── Row 1: Route + distance on one line ──────────
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = trip.startPostalCode.ifBlank { "—" },
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp)
+                            .size(16.dp),
+                    )
+                    Text(
+                        text = trip.endPostalCode.ifBlank { "—" },
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (trip.isDraft) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "DRAFT",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 0.6.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "${distanceFormatter.format(trip.distanceMileage)} km",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                    )
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                // ── Rows 2 & 3: Plate above time, tightly stacked ─
+                val hasPlate = trip.licensePlate.isNotBlank()
+                if (hasPlate) {
+                    Text(
+                        text = trip.licensePlate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = formatDateRange(trip.startDate, trip.endDate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            TextButton(onClick = onDelete) {
-                Text("Delete")
+
+            // ── Delete: right side, vertically centred ───────────
+            TextButton(
+                onClick = onDelete,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = "Delete",
+                    style = MaterialTheme.typography.labelMedium,
+                )
             }
         }
     }
