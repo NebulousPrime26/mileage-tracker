@@ -16,8 +16,8 @@ dependencies:
 settings:
   android:
     namespace: "com.nebulousprime26.mileage_tracker"
-    versionCode: 2
-    versionName: "0.0.2"
+    versionCode: 3
+    versionName: "0.0.3"
     signing:
       enabled: true
       propertiesFile: ./.keystores/keystore.properties
