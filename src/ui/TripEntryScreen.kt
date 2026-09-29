@@ -137,12 +137,26 @@ fun TripEntryScreen(
         }
     }
 
+    // Auto-fill the end time when the end mileage is entered.
+    //
+    // The transition is detected on the blank → non-blank edge, so it
+    // fires exactly once per entry. It applies to:
+    //   • a brand-new trip, and
+    //   • a draft being completed (the trip is still in progress, so
+    //     "now" is still the right time to record).
+    //
+    // It is deliberately skipped when editing a *completed* trip, since
+    // that would overwrite the stored end time just because the user
+    // touched the mileage field.
+    val isDraft = existingTrip?.isDraft == true
+    val autoFillAllowed = existingTrip == null || isDraft
+
     var lastEndMileageWasBlank by remember(existingTrip?.id) {
         mutableStateOf(endMileageText.isBlank())
     }
     LaunchedEffect(endMileageText, existingTrip?.id, autoFillEndTime) {
         val nowBlank = endMileageText.isBlank()
-        if (existingTrip == null && autoFillEndTime &&
+        if (autoFillAllowed && autoFillEndTime &&
             lastEndMileageWasBlank && !nowBlank
         ) {
             endDateMillis = System.currentTimeMillis()
