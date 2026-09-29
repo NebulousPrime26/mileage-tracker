@@ -13,8 +13,7 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────
-  # Debug APK — runs on pushes to main and manual triggers only.
-  # Pull requests do not trigger a build. No secrets required.
+  # Debug APK — runs on pushes to main only. No secrets required.
   # ─────────────────────────────────────────────────────────────────
   debug:
     name: Debug APK
