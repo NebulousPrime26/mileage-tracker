@@ -13,12 +13,12 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────
-  # Debug APK — runs on pushes to main and manual triggers only.
-  # Pull requests do not trigger a build. No secrets required.
+  # Debug APK — runs on pushes to main only. No secrets required.
   # ─────────────────────────────────────────────────────────────────
   debug:
     name: Debug APK
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
@@ -197,7 +197,7 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Mileage v${{ steps.version.outputs.version }}

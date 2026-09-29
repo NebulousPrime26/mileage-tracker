@@ -42,7 +42,7 @@ On Fedora with an ARM64 machine (e.g. Asahi Linux), the Android build tools need
 Clone and build:
 
 ```bash
-git clone https://github.com/<your-username>/mileage-tracker.git
+git clone https://github.com/NebulousPrime26/mileage-tracker.git
 cd mileage-tracker
 chmod +x ./kotlin
 ./kotlin build
@@ -66,7 +66,8 @@ Or build and launch in one step, if a device is connected:
 ```
 mileage-tracker/
 ├─ module.yaml                 # build config: dependencies, namespace, signing
-├─ keystore.properties         # signing credentials (gitignored)
+├─ .keystores/
+│  └─ keystore.properties      # signing credentials (gitignored)
 ├─ proguard-rules.pro          # R8 keep rules for release builds
 ├─ res/
 │  └─ values/
@@ -100,11 +101,11 @@ mileage-tracker/
 | `./kotlin build` | Debug APK |
 | `./kotlin package` | Signed release AAB |
 | `./kotlin run` | Build and launch on a connected device |
-| `./kotlin tool generate-keystore` | Create a signing keystore from `keystore.properties` |
+| `./kotlin tool generate-keystore` | Create a signing keystore using `.keystores/keystore.properties` |
 
 ## Signing and release
 
-Release builds are signed with a keystore whose path and passwords live in `keystore.properties` at the project root:
+Release builds are signed with a keystore whose path and passwords live in `.keystores/keystore.properties`:
 
 ```properties
 storeFile=/home/<user>/.keystores/release.keystore
@@ -152,8 +153,8 @@ unzip -p mileage-release.apks universal.apk > mileage-release.apk
 
 `.github/workflows/build.yml` defines two jobs:
 
-- **Debug APK** — runs on every push to `main` and on pull requests. No secrets required. Uploads a debug APK artifact.
-- **Release APK** — runs only on manual trigger. Builds a signed AAB, converts it to a universal APK with `bundletool`, and uploads the result.
+- **Debug APK** — runs on pushes to `main` only. No secrets required. Uploads a debug APK artifact. It is skipped for manual workflow runs.
+- **Release APK** — runs only on manual trigger. Builds a signed AAB, converts it to a universal APK with `bundletool`, uploads a workflow artifact, and attaches the APK to a GitHub Release.
 
 The release job needs four repository secrets:
 
@@ -176,14 +177,13 @@ Because the database is encrypted, standard SQLite tools cannot read it. The fil
 
 ## Building on ARM64
 
-On ARM64 Linux (Fedora Asahi, Debian ARM, etc.), the Android Gradle Plugin expects an x86-64 `aapt2` binary and fails under native execution. The fix is a QEMU wrapper:
+On ARM64 Linux (Fedora Asahi, Debian ARM, etc.), the Android Gradle Plugin expects an x86-64 `aapt2` binary and fails under native execution. The checked-in setup script configures a QEMU wrapper:
 
 ```bash
-curl -sLO https://raw.githubusercontent.com/IgnacioLD/aapt2-qemu/main/aapt2-qemu-setup.sh
-sh aapt2-qemu-setup.sh
+sh ./aapt2-qemu-setup.sh
 ```
 
-The setup script FUSE-mounts an x86-64 sysroot at `/tmp/aapt2-x86root`, writes a wrapper to `~/.local/share/aapt2-qemu/aapt2`, and points Gradle at it via `android.aapt2FromMavenOverride`. The mount is ephemeral — after a reboot, re-run the script.
+The script requires `qemu-user`, `erofs-utils`, and an x86-64 FEX root filesystem (by default `/usr/share/fex-emu/RootFS/default.erofs`). It mounts the filesystem at `/tmp/aapt2-x86root`, writes the wrapper to `~/.local/share/aapt2-qemu/aapt2`, and registers it through `~/.gradle/gradle.properties`. The mount is ephemeral; after a reboot, re-run the script. Set `AAPT2_EROFS` if your FEX root filesystem is stored elsewhere.
 
 If a build fails with `AAPT2 aapt2-qemu Daemon #0: Daemon startup failed`, that's almost always the lost mount. Re-running the script fixes it.
 
