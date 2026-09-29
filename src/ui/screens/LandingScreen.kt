@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -41,8 +39,8 @@ import com.nebulousprime26.mileage_tracker.ui.dialogs.ImportKeyDialog
 fun LandingScreen(
     versionName: String,
     viewModel: TripViewModel,
-    onContinue: () -> Unit = {},
-    onSettings: () -> Unit = {},
+    onContinue: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val shareUri by viewModel.shareUri.collectAsStateWithLifecycle()
@@ -51,10 +49,10 @@ fun LandingScreen(
 
     val importPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) viewModel.beginImport(uri)
-    }
+    ) { uri -> uri?.let(viewModel::beginImport) }
 
+    // Hand a freshly prepared CSV to the system share sheet, then clear
+    // the pending URI so the effect doesn't fire again.
     LaunchedEffect(shareUri) {
         val uri = shareUri ?: return@LaunchedEffect
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -115,14 +113,14 @@ fun LandingScreen(
                         Text(stringResource(R.string.landing_import))
                     }
                     OutlinedButton(
-                        onClick = { viewModel.exportTrips() },
+                        onClick = viewModel::exportTrips,
                         enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(stringResource(R.string.landing_export))
                     }
                     OutlinedButton(
-                        onClick = { viewModel.shareTripsAsCsv() },
+                        onClick = viewModel::shareTripsAsCsv,
                         enabled = !busy,
                         modifier = Modifier.weight(1f),
                     ) {
@@ -142,37 +140,50 @@ fun LandingScreen(
         }
     }
 
-    when (val state = backupState) {
+    BackupDialogs(state = backupState, viewModel = viewModel)
+}
+
+/**
+ * Renders whichever backup dialog matches the current state. Extracted
+ * from [LandingScreen] so the screen's body reads as one thing — the
+ * layout — and the state-to-dialog mapping lives on its own.
+ */
+@Composable
+private fun BackupDialogs(
+    state: TripViewModel.BackupState,
+    viewModel: TripViewModel,
+) {
+    when (state) {
         is TripViewModel.BackupState.ExportPreview -> ExportKeyDialog(
             key = state.key,
             filename = state.filename,
-            onConfirm = { viewModel.confirmExport() },
-            onCancel = { viewModel.cancelExport() },
+            onConfirm = viewModel::confirmExport,
+            onCancel = viewModel::cancelExport,
         )
 
         is TripViewModel.BackupState.Exported -> ExportDoneDialog(
             filename = state.filename,
-            onDismiss = { viewModel.dismissBackupState() },
+            onDismiss = viewModel::dismissBackupState,
         )
 
         is TripViewModel.BackupState.ImportAwaitingKey -> ImportKeyDialog(
             onConfirm = { key -> viewModel.submitImportKey(state.uri, key) },
-            onDismiss = { viewModel.dismissBackupState() },
+            onDismiss = viewModel::dismissBackupState,
         )
 
         is TripViewModel.BackupState.ImportConfirming -> ImportConfirmDialog(
-            onConfirm = { viewModel.confirmImport() },
-            onDismiss = { viewModel.dismissBackupState() },
+            onConfirm = viewModel::confirmImport,
+            onDismiss = viewModel::dismissBackupState,
         )
 
         is TripViewModel.BackupState.Imported -> ImportDoneDialog(
             count = state.count,
-            onDismiss = { viewModel.dismissBackupState() },
+            onDismiss = viewModel::dismissBackupState,
         )
 
         is TripViewModel.BackupState.Failed -> BackupErrorDialog(
             message = state.message,
-            onDismiss = { viewModel.dismissBackupState() },
+            onDismiss = viewModel::dismissBackupState,
         )
 
         TripViewModel.BackupState.Idle,
