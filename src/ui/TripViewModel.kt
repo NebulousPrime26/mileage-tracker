@@ -4,17 +4,6 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.AppLanguage
-import com.nebulousprime26.mileage_tracker.data.BackupException
-import com.nebulousprime26.mileage_tracker.data.SettingsRepository
-import com.nebulousprime26.mileage_tracker.data.ThemeMode
-import com.nebulousprime26.mileage_tracker.data.Trip
-import com.nebulousprime26.mileage_tracker.data.TripBackup
-import com.nebulousprime26.mileage_tracker.data.TripCrypto
-import com.nebulousprime26.mileage_tracker.data.TripCsv
-import com.nebulousprime26.mileage_tracker.data.TripDao
-import com.nebulousprime26.mileage_tracker.data.getDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +12,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.data.backup.BackupException
+import com.nebulousprime26.mileage_tracker.data.backup.TripBackup
+import com.nebulousprime26.mileage_tracker.data.backup.TripCrypto
+import com.nebulousprime26.mileage_tracker.data.backup.TripCsv
+import com.nebulousprime26.mileage_tracker.data.local.Trip
+import com.nebulousprime26.mileage_tracker.data.local.TripDao
+import com.nebulousprime26.mileage_tracker.data.local.getDatabase
+import com.nebulousprime26.mileage_tracker.data.settings.AppLanguage
+import com.nebulousprime26.mileage_tracker.data.settings.SettingsRepository
+import com.nebulousprime26.mileage_tracker.data.settings.ThemeMode
 
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 

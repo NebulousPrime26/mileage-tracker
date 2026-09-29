@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data
+package com.nebulousprime26.mileage_tracker.data.settings
 
 import android.content.Context
 import androidx.datastore.core.DataStore

@@ -5,7 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import com.nebulousprime26.mileage_tracker.data.ThemeMode
+
+import com.nebulousprime26.mileage_tracker.data.settings.ThemeMode
 
 /**
  * Wraps the app's UI in a MaterialTheme whose colour scheme is chosen

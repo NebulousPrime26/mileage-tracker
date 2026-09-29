@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data
+package com.nebulousprime26.mileage_tracker.data.backup
 
 import android.content.ContentValues
 import android.content.Context
@@ -7,13 +7,15 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.annotation.StringRes
-import com.nebulousprime26.mileage_tracker.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.data.local.Trip
 
 /**
  * Thrown when a backup operation fails. Carries a string resource ID

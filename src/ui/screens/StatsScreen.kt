@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui
+package com.nebulousprime26.mileage_tracker.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -51,12 +51,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nebulousprime26.mileage_tracker.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.ui.MonthlyStats
+import com.nebulousprime26.mileage_tracker.ui.StatsMetric
+import com.nebulousprime26.mileage_tracker.ui.TripViewModel
+import com.nebulousprime26.mileage_tracker.ui.YearlyStats
 
 private val PrivateLight = Color(0xFF1976D2)
 private val PrivateDark = Color(0xFF64B5F6)

@@ -1,13 +1,15 @@
-package com.nebulousprime26.mileage_tracker.data
+package com.nebulousprime26.mileage_tracker.data.backup
 
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.nebulousprime26.mileage_tracker.R
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.data.local.Trip
 
 /**
  * Builds and shares a CSV of all trips in chronological order. The
