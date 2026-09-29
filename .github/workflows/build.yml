@@ -19,6 +19,7 @@ jobs:
   debug:
     name: Debug APK
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
