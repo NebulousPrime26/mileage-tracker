@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data.local
+package com.nebulousprime26.mileage_tracker.db.local
 
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec

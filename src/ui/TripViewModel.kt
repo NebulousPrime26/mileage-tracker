@@ -14,13 +14,13 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.backup.BackupException
-import com.nebulousprime26.mileage_tracker.data.backup.TripBackup
-import com.nebulousprime26.mileage_tracker.data.backup.TripCrypto
-import com.nebulousprime26.mileage_tracker.data.backup.TripCsv
-import com.nebulousprime26.mileage_tracker.data.local.Trip
-import com.nebulousprime26.mileage_tracker.data.local.TripDao
-import com.nebulousprime26.mileage_tracker.data.local.getDatabase
+import com.nebulousprime26.mileage_tracker.db.backup.BackupException
+import com.nebulousprime26.mileage_tracker.db.backup.TripBackup
+import com.nebulousprime26.mileage_tracker.db.backup.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.backup.TripCsv
+import com.nebulousprime26.mileage_tracker.db.local.Trip
+import com.nebulousprime26.mileage_tracker.db.local.TripDao
+import com.nebulousprime26.mileage_tracker.db.local.getDatabase
 import com.nebulousprime26.mileage_tracker.settings.AppLanguage
 import com.nebulousprime26.mileage_tracker.settings.SettingsRepository
 import com.nebulousprime26.mileage_tracker.settings.Theme

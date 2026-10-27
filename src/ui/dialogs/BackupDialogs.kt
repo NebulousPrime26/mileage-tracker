@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.backup.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.backup.TripCrypto
 
 @Composable
 fun ExportKeyDialog(

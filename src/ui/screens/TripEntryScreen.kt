@@ -56,7 +56,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.local.Trip
+import com.nebulousprime26.mileage_tracker.db.local.Trip
 
 private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())

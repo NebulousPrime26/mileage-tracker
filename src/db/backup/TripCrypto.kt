@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data.backup
+package com.nebulousprime26.mileage_tracker.db.backup
 
 import java.security.SecureRandom
 import javax.crypto.Cipher

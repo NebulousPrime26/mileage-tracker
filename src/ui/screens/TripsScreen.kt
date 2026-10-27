@@ -84,7 +84,7 @@ import java.util.TimeZone
 import kotlin.math.roundToInt
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.local.Trip
+import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 
 private const val SWEEP_DURATION_MS = 220

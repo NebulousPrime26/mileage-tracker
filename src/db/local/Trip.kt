@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data.local
+package com.nebulousprime26.mileage_tracker.db.local
 
 import androidx.room.Dao
 import androidx.room.Entity
