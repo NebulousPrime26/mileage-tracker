@@ -15,68 +15,64 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 )
 
 class SettingsRepository(private val context: Context) {
-    private val fabOnRightKey = booleanPreferencesKey("fab_on_right")
-    private val themeKey = stringPreferencesKey("theme_mode")
-    private val appLanguageKey = stringPreferencesKey("app_language")
-    private val postalFirstKey = booleanPreferencesKey("postal_first")
-    private val draftLeftKey = booleanPreferencesKey("draft_left")
-    private val roundTripAssumptionKey = booleanPreferencesKey("round_trip_assumption")
-    private val autoFillEndTimeKey = booleanPreferencesKey("auto_fill_end_time")
-    private val allowSpacesInPostalKey = booleanPreferencesKey("allow_spaces_in_postal")
+    private val store get() = context.settingsDataStore
 
-    val fabOnRight: Flow<Boolean> = context.settingsDataStore.data
-        .map { prefs -> prefs[fabOnRightKey] ?: true }
-
-    suspend fun setFabOnRight(onRight: Boolean) {
-        context.settingsDataStore.edit { prefs -> prefs[fabOnRightKey] = onRight }
+    /** Read a boolean preference, falling back to [default] when unset. */
+    private fun booleanPref(name: String, default: Boolean): Flow<Boolean> {
+        val key = booleanPreferencesKey(name)
+        return store.data.map { it[key] ?: default }
     }
 
-    val theme: Flow<Theme> = context.settingsDataStore.data
-        .map { prefs -> Theme.fromStorage(prefs[themeKey]) }
-
-    suspend fun setTheme(mode: Theme) {
-        context.settingsDataStore.edit { prefs -> prefs[themeKey] = mode.name }
+    /** Write a boolean preference. */
+    private suspend fun setBoolean(name: String, value: Boolean) {
+        val key = booleanPreferencesKey(name)
+        store.edit { it[key] = value }
     }
 
-    val appLanguage: Flow<AppLanguage> = context.settingsDataStore.data
-        .map { prefs -> AppLanguage.fromStorage(prefs[appLanguageKey]) }
-
-    suspend fun setAppLanguage(language: AppLanguage) {
-        context.settingsDataStore.edit { prefs -> prefs[appLanguageKey] = language.name }
+    /** Read a string preference, mapping through [decode]. */
+    private fun <T> stringPref(
+        name: String,
+        decode: (String?) -> T,
+    ): Flow<T> {
+        val key = stringPreferencesKey(name)
+        return store.data.map { decode(it[key]) }
     }
 
-    val postalFirst: Flow<Boolean> = context.settingsDataStore.data
-        .map { prefs -> prefs[postalFirstKey] ?: true }
-
-    suspend fun setPostalFirst(postalFirst: Boolean) {
-        context.settingsDataStore.edit { prefs -> prefs[postalFirstKey] = postalFirst }
+    /** Write a string preference from a value's [encode] representation. */
+    private suspend fun <T> setString(
+        name: String,
+        value: T,
+        encode: (T) -> String,
+    ) {
+        val key = stringPreferencesKey(name)
+        store.edit { it[key] = encode(value) }
     }
 
-    val draftLeft: Flow<Boolean> = context.settingsDataStore.data
-        .map { prefs -> prefs[draftLeftKey] ?: true }
+    val fabOnRight: Flow<Boolean> = booleanPref("fab_on_right", true)
+    suspend fun setFabOnRight(value: Boolean) = setBoolean("fab_on_right", value)
 
-    suspend fun setDraftLeft(draftLeft: Boolean) {
-        context.settingsDataStore.edit { prefs -> prefs[draftLeftKey] = draftLeft }
-    }
+    val theme: Flow<Theme> = stringPref("theme_mode", Theme::fromStorage)
+    suspend fun setTheme(value: Theme) = setString("theme_mode", value, Theme::name)
 
-    val roundTripAssumption: Flow<Boolean> = context.settingsDataStore.data
-        .map { prefs -> prefs[roundTripAssumptionKey] ?: true }
+    val appLanguage: Flow<AppLanguage> = stringPref("app_language", AppLanguage::fromStorage)
+    suspend fun setAppLanguage(value: AppLanguage) =
+        setString("app_language", value, AppLanguage::name)
 
-    suspend fun setRoundTripAssumption(value: Boolean) {
-        context.settingsDataStore.edit { prefs -> prefs[roundTripAssumptionKey] = value }
-    }
+    val postalFirst: Flow<Boolean> = booleanPref("postal_first", true)
+    suspend fun setPostalFirst(value: Boolean) = setBoolean("postal_first", value)
 
-    val autoFillEndTime: Flow<Boolean> = context.settingsDataStore.data
-        .map { prefs -> prefs[autoFillEndTimeKey] ?: true }
+    val draftLeft: Flow<Boolean> = booleanPref("draft_left", true)
+    suspend fun setDraftLeft(value: Boolean) = setBoolean("draft_left", value)
 
-    suspend fun setAutoFillEndTime(value: Boolean) {
-        context.settingsDataStore.edit { prefs -> prefs[autoFillEndTimeKey] = value }
-    }
+    val roundTripAssumption: Flow<Boolean> = booleanPref("round_trip_assumption", true)
+    suspend fun setRoundTripAssumption(value: Boolean) =
+        setBoolean("round_trip_assumption", value)
 
-    val allowSpacesInPostal: Flow<Boolean> = context.settingsDataStore.data
-        .map { prefs -> prefs[allowSpacesInPostalKey] ?: false }
+    val autoFillEndTime: Flow<Boolean> = booleanPref("auto_fill_end_time", true)
+    suspend fun setAutoFillEndTime(value: Boolean) =
+        setBoolean("auto_fill_end_time", value)
 
-    suspend fun setAllowSpacesInPostal(value: Boolean) {
-        context.settingsDataStore.edit { prefs -> prefs[allowSpacesInPostalKey] = value }
-    }
+    val allowSpacesInPostal: Flow<Boolean> = booleanPref("allow_spaces_in_postal", false)
+    suspend fun setAllowSpacesInPostal(value: Boolean) =
+        setBoolean("allow_spaces_in_postal", value)
 }
