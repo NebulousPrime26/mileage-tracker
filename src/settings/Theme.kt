@@ -34,10 +34,8 @@ fun AppTheme(
         Theme.DARK -> true
     }
 
-    val colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme(),
         content = content,
     )
 }
