@@ -15,11 +15,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.nebulousprime26.mileage_tracker.data.local.Trip
-import com.nebulousprime26.mileage_tracker.data.settings.AppLanguage
-import com.nebulousprime26.mileage_tracker.ui.MileageTheme
+import com.nebulousprime26.mileage_tracker.settings.AppLanguage
+import com.nebulousprime26.mileage_tracker.ui.screens.SettingsScreen
+import com.nebulousprime26.mileage_tracker.settings.AppTheme
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.screens.LandingScreen
-import com.nebulousprime26.mileage_tracker.ui.screens.SettingsScreen
 import com.nebulousprime26.mileage_tracker.ui.screens.StatsScreen
 import com.nebulousprime26.mileage_tracker.ui.screens.TripEntryScreen
 import com.nebulousprime26.mileage_tracker.ui.screens.TripsScreen
@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val vm: TripViewModel = viewModel()
-            val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+            val theme by vm.theme.collectAsStateWithLifecycle()
             val appLanguage by vm.appLanguage.collectAsStateWithLifecycle()
 
             // Read the version once from the installed APK's manifest.
@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            MileageTheme(themeMode = themeMode) {
+            AppTheme(theme = theme) {
                 var screen by remember { mutableStateOf(Screen.Landing) }
                 var editingTrip by remember { mutableStateOf<Trip?>(null) }
 

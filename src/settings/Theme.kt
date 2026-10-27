@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui
+package com.nebulousprime26.mileage_tracker.settings
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -6,7 +6,17 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-import com.nebulousprime26.mileage_tracker.data.settings.ThemeMode
+/** How the app should decide between light and dark colours. */
+enum class Theme {
+    SYSTEM,
+    LIGHT,
+    DARK;
+
+    companion object {
+        fun fromStorage(value: String?): Theme =
+            entries.firstOrNull { it.name == value } ?: SYSTEM
+    }
+}
 
 /**
  * Wraps the app's UI in a MaterialTheme whose colour scheme is chosen
@@ -14,14 +24,14 @@ import com.nebulousprime26.mileage_tracker.data.settings.ThemeMode
  * DARK force the respective scheme regardless of the OS.
  */
 @Composable
-fun MileageTheme(
-    themeMode: ThemeMode,
+fun AppTheme(
+    theme: Theme,
     content: @Composable () -> Unit,
 ) {
-    val darkTheme = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
+    val darkTheme = when (theme) {
+        Theme.SYSTEM -> isSystemInDarkTheme()
+        Theme.LIGHT -> false
+        Theme.DARK -> true
     }
 
     val colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()

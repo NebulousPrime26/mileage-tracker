@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data.settings
+package com.nebulousprime26.mileage_tracker.settings
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -13,18 +13,6 @@ import kotlinx.coroutines.flow.map
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "settings",
 )
-
-/** How the app should decide between light and dark colours. */
-enum class ThemeMode {
-    SYSTEM,
-    LIGHT,
-    DARK;
-
-    companion object {
-        fun fromStorage(value: String?): ThemeMode =
-            entries.firstOrNull { it.name == value } ?: SYSTEM
-    }
-}
 
 /**
  * Which language the app should display. SYSTEM follows the device
@@ -44,7 +32,7 @@ enum class AppLanguage(val tag: String?) {
 class SettingsRepository(private val context: Context) {
 
     private val fabOnRightKey = booleanPreferencesKey("fab_on_right")
-    private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val themeKey = stringPreferencesKey("theme_mode")
     private val appLanguageKey = stringPreferencesKey("app_language")
     private val postalFirstKey = booleanPreferencesKey("postal_first")
     private val draftLeftKey = booleanPreferencesKey("draft_left")
@@ -59,11 +47,11 @@ class SettingsRepository(private val context: Context) {
         context.settingsDataStore.edit { prefs -> prefs[fabOnRightKey] = onRight }
     }
 
-    val themeMode: Flow<ThemeMode> = context.settingsDataStore.data
-        .map { prefs -> ThemeMode.fromStorage(prefs[themeModeKey]) }
+    val theme: Flow<Theme> = context.settingsDataStore.data
+        .map { prefs -> Theme.fromStorage(prefs[themeKey]) }
 
-    suspend fun setThemeMode(mode: ThemeMode) {
-        context.settingsDataStore.edit { prefs -> prefs[themeModeKey] = mode.name }
+    suspend fun setTheme(mode: Theme) {
+        context.settingsDataStore.edit { prefs -> prefs[themeKey] = mode.name }
     }
 
     val appLanguage: Flow<AppLanguage> = context.settingsDataStore.data
