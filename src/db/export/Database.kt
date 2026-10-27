@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.flow.first
 
-import com.nebulousprime26.mileage_tracker.db.cipher.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.cipher.encryptText
 import com.nebulousprime26.mileage_tracker.db.cipher.EncryptedBackup
 import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.db.local.getDatabase
@@ -15,9 +15,8 @@ private const val JSON_FORMAT_VERSION = 1
 /** Serialises all trips and returns them encrypted, ready to write. */
 suspend fun exportDb(context: Context): EncryptedBackup {
     val serialisedTrips = serialiseTrips(context)
-    val encryptedBackup = TripCrypto.encrypt(serialisedTrips)
     
-    return encryptedBackup
+    return encryptText(serialisedTrips)
 }
 
 private suspend fun serialiseTrips(context: Context): ByteArray {

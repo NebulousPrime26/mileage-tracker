@@ -15,23 +15,45 @@ data class EncryptedBackup(
     val filename: String,
 )
 
+private const val KEY_SIZE_BYTES = 32          // 256 bits
+private const val IV_SIZE_BYTES = 12
+private const val GCM_TAG_BITS = 128
+private const val FORMAT_VERSION = 1.toByte()
+
+private val MAGIC = byteArrayOf(
+    'M'.code.toByte(),
+    'L'.code.toByte(),
+    'G'.code.toByte(),
+    'B'.code.toByte(),
+)
+
+/** Encrypts [plaintext] and returns a self-describing blob */
+fun encryptText(plaintext: ByteArray): EncryptedBackup {
+    val stamp = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd HH-mm-ss", Locale.ROOT)
+        .format(LocalDateTime.now())
+    
+    val key = ByteArray(KEY_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
+    val iv = ByteArray(IV_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
+
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(
+        Cipher.ENCRYPT_MODE,
+        SecretKeySpec(key, "AES"),
+        GCMParameterSpec(GCM_TAG_BITS, iv),
+    )
+    val ciphertext = cipher.doFinal(plaintext)
+    val blob = MAGIC + byteArrayOf(FORMAT_VERSION) + iv + ciphertext
+    
+    return EncryptedBackup(key, blob, "mileage-backup-$stamp.mlgbak")
+}
+    
 /**
  * AES-256-GCM encryption for trip backups. The key is generated fresh
  * for each export and never stored — the user is shown it once and
  * must write it down to be able to import later.
  */
 object TripCrypto {
-
-    private const val KEY_SIZE_BYTES = 32          // 256 bits
-    private const val IV_SIZE_BYTES = 12
-    private const val GCM_TAG_BITS = 128
-    private const val FORMAT_VERSION = 1.toByte()
-
-    private val MAGIC = byteArrayOf(
-        'M'.code.toByte(), 'L'.code.toByte(),
-        'G'.code.toByte(), 'B'.code.toByte(),
-    )
-
     /**
      * Formats a key as uppercase hex in 4-character groups, e.g.
      * "A3F2 B19C 4D7E 8A1F …". Easier to transcribe by hand than a
@@ -55,29 +77,7 @@ object TripCrypto {
         }
     }
 
-    /**
-     * Encrypts [plaintext] and returns a self-describing blob:
-     *   MAGIC (4 bytes) | VERSION (1 byte) | IV (12 bytes) | CIPHERTEXT + GCM TAG
-     */
-    fun encrypt(plaintext: ByteArray): EncryptedBackup {
-        val stamp = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd HH-mm-ss", Locale.ROOT)
-            .format(LocalDateTime.now())
-        
-        val key = ByteArray(KEY_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
-        val iv = ByteArray(IV_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
-
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(
-            Cipher.ENCRYPT_MODE,
-            SecretKeySpec(key, "AES"),
-            GCMParameterSpec(GCM_TAG_BITS, iv),
-        )
-        val ciphertext = cipher.doFinal(plaintext)
-        val blob = MAGIC + byteArrayOf(FORMAT_VERSION) + iv + ciphertext
-      
-        return EncryptedBackup(key, blob, "mileage-backup-$stamp.mlgbak")
-    }
+    
 
     /**
      * Decrypts a blob produced by [encrypt]. Returns null on any failure —
