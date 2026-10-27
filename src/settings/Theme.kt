@@ -6,11 +6,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-/** How the app should decide between light and dark colours. */
-enum class Theme {
-    SYSTEM,
-    LIGHT,
-    DARK;
+/** Enum to indicate the app's UI theme. */
+enum class Theme (val darkScheme: Boolean?){
+    SYSTEM(null),
+    LIGHT(false),
+    DARK(true);
 
     companion object {
         fun fromStorage(value: String?): Theme =
@@ -18,24 +18,16 @@ enum class Theme {
     }
 }
 
-/**
- * Wraps the app's UI in a MaterialTheme whose colour scheme is chosen
- * by the user's preference. SYSTEM follows the OS setting; LIGHT and
- * DARK force the respective scheme regardless of the OS.
- */
+/** Wraps the app's UI in Material theme based on the user preference. */
 @Composable
 fun AppTheme(
     theme: Theme,
     content: @Composable () -> Unit,
 ) {
-    val darkTheme = when (theme) {
-        Theme.SYSTEM -> isSystemInDarkTheme()
-        Theme.LIGHT -> false
-        Theme.DARK -> true
-    }
+    val darkScheme = theme.darkScheme ?: isSystemInDarkTheme()
 
     MaterialTheme(
-        colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme(),
+        colorScheme = if (darkScheme) darkColorScheme() else lightColorScheme(),
         content = content,
     )
 }
