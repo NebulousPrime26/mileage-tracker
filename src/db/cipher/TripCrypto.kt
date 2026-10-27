@@ -1,9 +1,19 @@
-package com.nebulousprime26.mileage_tracker.db.backup
+package com.nebulousprime26.mileage_tracker.db.cipher
 
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+import java.util.Locale
+
+data class EncryptedBackup(
+    val key: ByteArray,
+    val blob: ByteArray,
+    val filename: String,
+)
 
 /**
  * AES-256-GCM encryption for trip backups. The key is generated fresh
@@ -21,9 +31,6 @@ object TripCrypto {
         'M'.code.toByte(), 'L'.code.toByte(),
         'G'.code.toByte(), 'B'.code.toByte(),
     )
-
-    fun generateKey(): ByteArray =
-        ByteArray(KEY_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
 
     /**
      * Formats a key as uppercase hex in 4-character groups, e.g.
@@ -52,8 +59,12 @@ object TripCrypto {
      * Encrypts [plaintext] and returns a self-describing blob:
      *   MAGIC (4 bytes) | VERSION (1 byte) | IV (12 bytes) | CIPHERTEXT + GCM TAG
      */
-    fun encrypt(plaintext: ByteArray, key: ByteArray): ByteArray {
-        require(key.size == KEY_SIZE_BYTES) { "Key must be $KEY_SIZE_BYTES bytes" }
+    fun encrypt(plaintext: ByteArray): EncryptedBackup {
+        val stamp = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd HH-mm-ss", Locale.ROOT)
+            .format(LocalDateTime.now())
+        
+        val key = ByteArray(KEY_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
         val iv = ByteArray(IV_SIZE_BYTES).also { SecureRandom().nextBytes(it) }
 
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -63,8 +74,9 @@ object TripCrypto {
             GCMParameterSpec(GCM_TAG_BITS, iv),
         )
         val ciphertext = cipher.doFinal(plaintext)
-
-        return MAGIC + byteArrayOf(FORMAT_VERSION) + iv + ciphertext
+        val blob = MAGIC + byteArrayOf(FORMAT_VERSION) + iv + ciphertext
+      
+        return EncryptedBackup(key, blob, "mileage-backup-$stamp.mlgbak")
     }
 
     /**

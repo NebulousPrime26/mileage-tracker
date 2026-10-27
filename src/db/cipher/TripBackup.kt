@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.db.backup
+package com.nebulousprime26.mileage_tracker.db.cipher
 
 import android.content.ContentValues
 import android.content.Context
@@ -136,11 +136,5 @@ object TripBackup {
         val file = File(downloads, filename)
         file.writeBytes(bytes)
         return Uri.fromFile(file)
-    }
-
-    fun defaultFilename(): String {
-        val stamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.ROOT)
-            .format(Date())
-        return "mileage-backup-$stamp.$EXTENSION"
     }
 }

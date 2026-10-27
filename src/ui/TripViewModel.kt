@@ -14,9 +14,11 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.db.backup.BackupException
-import com.nebulousprime26.mileage_tracker.db.backup.TripBackup
-import com.nebulousprime26.mileage_tracker.db.backup.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.cipher.BackupException
+import com.nebulousprime26.mileage_tracker.db.cipher.EncryptedBackup
+import com.nebulousprime26.mileage_tracker.db.cipher.TripBackup
+import com.nebulousprime26.mileage_tracker.db.cipher.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.exportDb
 import com.nebulousprime26.mileage_tracker.db.shareCsv
 import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.db.local.TripDao
@@ -62,13 +64,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      * Holds the encrypted backup in memory between the preview dialog
      * and the confirmation. Cleared on confirm, cancel, or failure.
      */
-    private class PendingExport(
-        val key: ByteArray,
-        val filename: String,
-        val encryptedBytes: ByteArray,
-    )
-
-    private var pendingExport: PendingExport? = null
+    private var pendingExport: EncryptedBackup? = null
 
     private val dao: TripDao = getDatabase(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
@@ -319,22 +315,14 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun exportTrips() {
         viewModelScope.launch {
+            val app = getApplication<Application>()
             _backupState.value = BackupState.Working
             try {
-                val allTrips = dao.getAll().first()
-                val json = TripBackup.serializeTrips(allTrips)
-                val key = TripCrypto.generateKey()
-                val encrypted = TripCrypto.encrypt(json, key)
-                val filename = TripBackup.defaultFilename()
-
-                pendingExport = PendingExport(
-                    key = key,
-                    filename = filename,
-                    encryptedBytes = encrypted,
-                )
+                val backup = exportDb(app)
+                pendingExport = backup
                 _backupState.value = BackupState.ExportPreview(
-                    key = TripCrypto.formatKey(key),
-                    filename = filename,
+                    key = TripCrypto.formatKey(backup.key),
+                    filename = backup.filename,
                 )
             } catch (t: Throwable) {
                 pendingExport = null
@@ -363,7 +351,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 TripBackup.writeToDownloads(
                     context = getApplication(),
                     filename = pending.filename,
-                    bytes = pending.encryptedBytes,
+                    bytes = pending.blob,
                 )
                 pendingExport = null
                 _backupState.value = BackupState.Exported(pending.filename)
