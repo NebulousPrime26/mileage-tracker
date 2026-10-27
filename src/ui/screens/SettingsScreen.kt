@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.settings.AppLanguage
+import com.nebulousprime26.mileage_tracker.settings.Theme
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
-import com.nebulousprime26.mileage_tracker.data.settings.AppLanguage
-import com.nebulousprime26.mileage_tracker.data.settings.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +40,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val theme by viewModel.theme.collectAsStateWithLifecycle()
     val appLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
     val postalFirst by viewModel.postalFirst.collectAsStateWithLifecycle()
     val draftLeft by viewModel.draftLeft.collectAsStateWithLifecycle()
@@ -74,9 +74,9 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            ThemeModeSelector(
-                selected = themeMode,
-                onSelect = { viewModel.setThemeMode(it) },
+            themeSelector(
+                selected = theme,
+                onSelect = { viewModel.setTheme(it) },
             )
 
             HorizontalDivider()
@@ -87,7 +87,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            LanguageSelector(
+            languageSelector(
                 selected = appLanguage,
                 onSelect = { viewModel.setAppLanguage(it) },
             )
@@ -100,21 +100,21 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            PositionSetting(
+            positionSetting(
                 title = stringResource(R.string.settings_add_trip_button),
                 explanation = stringResource(R.string.settings_add_trip_button_desc),
                 isRight = fabOnRight,
                 onToggle = { viewModel.setFabOnRight(it) },
             )
 
-            PositionSetting(
+            positionSetting(
                 title = stringResource(R.string.settings_postal_group),
                 explanation = stringResource(R.string.settings_postal_group_desc),
                 isRight = !postalFirst,
                 onToggle = { viewModel.setPostalFirst(!it) },
             )
 
-            PositionSetting(
+            positionSetting(
                 title = stringResource(R.string.settings_draft_button),
                 explanation = stringResource(R.string.settings_draft_button_desc),
                 isRight = !draftLeft,
@@ -129,21 +129,21 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            ToggleSetting(
+            toggleSetting(
                 title = stringResource(R.string.settings_round_trips),
                 explanation = stringResource(R.string.settings_round_trips_desc),
                 checked = roundTripAssumption,
                 onToggle = { viewModel.setRoundTripAssumption(it) },
             )
 
-            ToggleSetting(
+            toggleSetting(
                 title = stringResource(R.string.settings_auto_fill_end_time),
                 explanation = stringResource(R.string.settings_auto_fill_end_time_desc),
                 checked = autoFillEndTime,
                 onToggle = { viewModel.setAutoFillEndTime(it) },
             )
 
-            ToggleSetting(
+            toggleSetting(
                 title = stringResource(R.string.settings_allow_spaces),
                 explanation = null,
                 checked = allowSpacesInPostal,
@@ -156,7 +156,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun PositionSetting(
+private fun positionSetting(
     title: String,
     explanation: String,
     isRight: Boolean,
@@ -208,7 +208,7 @@ private fun PositionSetting(
 }
 
 @Composable
-private fun ToggleSetting(
+private fun toggleSetting(
     title: String,
     explanation: String?,
     checked: Boolean,
@@ -243,21 +243,21 @@ private fun ToggleSetting(
 }
 
 @Composable
-private fun ThemeModeSelector(
-    selected: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
+private fun themeSelector(
+    selected: Theme,
+    onSelect: (Theme) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .selectableGroup(),
     ) {
-        ThemeMode.entries.forEach { mode ->
+        Theme.entries.forEach { mode ->
             val label = stringResource(
                 when (mode) {
-                    ThemeMode.SYSTEM -> R.string.settings_theme_system
-                    ThemeMode.LIGHT -> R.string.settings_theme_light
-                    ThemeMode.DARK -> R.string.settings_theme_dark
+                    Theme.SYSTEM -> R.string.settings_theme_system
+                    Theme.LIGHT -> R.string.settings_theme_light
+                    Theme.DARK -> R.string.settings_theme_dark
                 }
             )
 
@@ -284,7 +284,7 @@ private fun ThemeModeSelector(
 }
 
 @Composable
-private fun LanguageSelector(
+private fun languageSelector(
     selected: AppLanguage,
     onSelect: (AppLanguage) -> Unit,
 ) {

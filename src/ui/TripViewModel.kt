@@ -21,9 +21,9 @@ import com.nebulousprime26.mileage_tracker.data.backup.TripCsv
 import com.nebulousprime26.mileage_tracker.data.local.Trip
 import com.nebulousprime26.mileage_tracker.data.local.TripDao
 import com.nebulousprime26.mileage_tracker.data.local.getDatabase
-import com.nebulousprime26.mileage_tracker.data.settings.AppLanguage
-import com.nebulousprime26.mileage_tracker.data.settings.SettingsRepository
-import com.nebulousprime26.mileage_tracker.data.settings.ThemeMode
+import com.nebulousprime26.mileage_tracker.settings.AppLanguage
+import com.nebulousprime26.mileage_tracker.settings.SettingsRepository
+import com.nebulousprime26.mileage_tracker.settings.Theme
 
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -144,15 +144,15 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setFabOnRight(onRight) }
     }
 
-    val themeMode: StateFlow<ThemeMode> = settingsRepo.themeMode
+    val theme: StateFlow<Theme> = settingsRepo.theme
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemeMode.SYSTEM,
+            initialValue = Theme.SYSTEM,
         )
 
-    fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch { settingsRepo.setThemeMode(mode) }
+    fun setTheme(mode: Theme) {
+        viewModelScope.launch { settingsRepo.setTheme(mode) }
     }
 
     val appLanguage: StateFlow<AppLanguage> = settingsRepo.appLanguage
