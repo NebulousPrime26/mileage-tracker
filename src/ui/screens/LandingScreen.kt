@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.db.backup.TripCsv
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.dialogs.BackupErrorDialog
 import com.nebulousprime26.mileage_tracker.ui.dialogs.ExportDoneDialog
@@ -56,7 +55,7 @@ fun LandingScreen(
     LaunchedEffect(shareUri) {
         val uri = shareUri ?: return@LaunchedEffect
         val intent = Intent(Intent.ACTION_SEND).apply {
-            type = TripCsv.mimeType
+            type = "text/csv"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

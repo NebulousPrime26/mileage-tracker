@@ -17,7 +17,7 @@ import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.db.backup.BackupException
 import com.nebulousprime26.mileage_tracker.db.backup.TripBackup
 import com.nebulousprime26.mileage_tracker.db.backup.TripCrypto
-import com.nebulousprime26.mileage_tracker.db.backup.TripCsv
+import com.nebulousprime26.mileage_tracker.db.shareCsv
 import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.db.local.TripDao
 import com.nebulousprime26.mileage_tracker.db.local.getDatabase
@@ -458,10 +458,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                     )
                     return@launch
                 }
-                val csv = TripCsv.build(app, allTrips)
-                val filename = TripCsv.defaultFilename()
-                val uri = TripCsv.writeToCache(app, filename, csv)
-                _shareUri.value = uri
+                _shareUri.value = shareCsv(app, allTrips)
             } catch (t: Throwable) {
                 _backupState.value = BackupState.Failed(
                     resolveMessage(t, R.string.backup_error_prepare_csv)
