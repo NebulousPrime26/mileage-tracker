@@ -14,23 +14,7 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
     name = "settings",
 )
 
-/**
- * Which language the app should display. SYSTEM follows the device
- * setting, ENGLISH and DUTCH force a specific locale.
- */
-enum class AppLanguage(val tag: String?) {
-    SYSTEM(null),
-    ENGLISH("en"),
-    DUTCH("nl");
-
-    companion object {
-        fun fromStorage(value: String?): AppLanguage =
-            entries.firstOrNull { it.name == value } ?: SYSTEM
-    }
-}
-
 class SettingsRepository(private val context: Context) {
-
     private val fabOnRightKey = booleanPreferencesKey("fab_on_right")
     private val themeKey = stringPreferencesKey("theme_mode")
     private val appLanguageKey = stringPreferencesKey("app_language")
