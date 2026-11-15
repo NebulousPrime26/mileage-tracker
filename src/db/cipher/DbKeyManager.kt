@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.db.local
+package com.nebulousprime26.mileage_tracker.db.cipher
 
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
@@ -10,7 +10,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import java.security.SecureRandom
 
-class SqlCipherKeyManager(private val sharedPreferences: SharedPreferences) {
+class DbKeyManager(private val sharedPreferences: SharedPreferences) {
 
     private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     private val masterKeyAlias = "sqlcipher_master_key"

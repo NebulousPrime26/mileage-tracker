@@ -8,6 +8,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
+import com.nebulousprime26.mileage_tracker.db.cipher.DbKeyManager
+
 @Database(
     entities = [Trip::class],
     version = 1,
@@ -35,7 +37,7 @@ abstract class MileageDatabase : RoomDatabase() {
         private fun buildDatabase(context: Context): MileageDatabase {
             System.loadLibrary("sqlcipher")
 
-            val keyManager = SqlCipherKeyManager(
+            val keyManager = DbKeyManager(
                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             )
             val passphrase = keyManager.getOrCreateDatabaseKey()
