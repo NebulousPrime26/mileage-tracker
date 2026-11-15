@@ -38,7 +38,7 @@ private fun Trip.toJson(): JSONObject = JSONObject().apply {
     put("licensePlate", licensePlate)
     put("startMileage", startMileage)
     put("endMileage", endMileage)
-    put("privateUse", privateUse)
+    put("isPrivate", isPrivate)
     put("notes", notes)
     put("isDraft", isDraft)
 }

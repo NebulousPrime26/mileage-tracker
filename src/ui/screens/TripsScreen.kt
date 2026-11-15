@@ -142,9 +142,9 @@ private fun List<Trip>.applyFilter(spec: TripFilterSpec): List<Trip> = filter { 
             trip.endPostalCode.contains(spec.endPostalContains, ignoreCase = true)) &&
         (spec.licensePlateContains.isBlank() ||
             trip.licensePlate.contains(spec.licensePlateContains, ignoreCase = true)) &&
-        (spec.minDistanceKm == null || trip.distanceMileage >= spec.minDistanceKm) &&
-        (spec.maxDistanceKm == null || trip.distanceMileage <= spec.maxDistanceKm) &&
-        (spec.privateOnly == null || trip.privateUse == spec.privateOnly)
+        (spec.minDistanceKm == null || trip.distance >= spec.minDistanceKm) &&
+        (spec.maxDistanceKm == null || trip.distance <= spec.maxDistanceKm) &&
+        (spec.privateOnly == null || trip.isPrivate == spec.privateOnly)
 }
 
 private fun formatDateRange(start: Long, end: Long): String {
@@ -844,7 +844,7 @@ private fun TripSummary(trip: Trip) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        if (trip.privateUse) {
+        if (trip.isPrivate) {
             Text(
                 text = stringResource(R.string.trips_private_tag),
                 style = MaterialTheme.typography.labelMedium,
@@ -951,7 +951,7 @@ private fun TripRow(
                     Text(
                         text = stringResource(
                             R.string.trips_km_suffix,
-                            distanceFormatter.format(trip.distanceMileage),
+                            distanceFormatter.format(trip.distance),
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,

@@ -11,24 +11,25 @@ import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "trips")
 data class Trip(
-    @PrimaryKey(autoGenerate = true) val id: Long,
-    /** When the trip began, as local epoch millis. */
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    /** When the trip began, as epoch millis. */
     val startDate: Long,
-    /** When the trip ended, as local epoch millis. */
+    /** When the trip ended, as epoch millis. Placeholder for drafts. */
     val endDate: Long,
     val startPostalCode: String,
     val endPostalCode: String,
     /** Optional vehicle identifier. Empty means "not specified". */
     val licensePlate: String,
     val startMileage: Double,
+    /** Odometer at trip end. Placeholder for drafts. */
     val endMileage: Double,
-    val privateUse: Boolean,
+    val isPrivate: Boolean,
     val notes: String,
     /** True when the trip was saved without completing all required fields. */
     val isDraft: Boolean,
 ) {
-    val distanceMileage: Double
-        get() = endMileage - startMileage
+    val distance: Double
+        get() = (endMileage - startMileage).coerceAtLeast(0.0)
 
     /** Elapsed time of the trip in milliseconds. */
     val durationMillis: Long
@@ -38,11 +39,14 @@ data class Trip(
 @Dao
 interface TripDao {
 
-    @Query("SELECT * FROM trips ORDER BY startDate DESC")
+    @Query("SELECT * FROM trips ORDER BY startDate DESC, id DESC")
     fun getAll(): Flow<List<Trip>>
 
-    @Query("SELECT * FROM trips WHERE privateUse = :isPrivate ORDER BY startDate DESC")
+    @Query("SELECT * FROM trips WHERE isPrivate = :isPrivate ORDER BY startDate DESC, id DESC")
     fun getByPrivateUse(isPrivate: Boolean): Flow<List<Trip>>
+
+    @Query("SELECT * FROM trips WHERE id = :id")
+    fun getById(id: Long): Flow<Trip?>
 
     @Query("SELECT MAX(endMileage) FROM trips WHERE isDraft = 0")
     fun getMaxEndMileage(): Flow<Double?>
@@ -59,10 +63,13 @@ interface TripDao {
     fun getLastLicensePlate(): Flow<String?>
 
     @Insert
-    suspend fun insert(trip: Trip)
+    suspend fun insert(trip: Trip): Long
+
+    @Insert
+    suspend fun insertAll(trips: List<Trip>)
 
     @Update
-    suspend fun update(trip: Trip)
+    suspend fun update(trip: Trip): Int
 
     @Query("DELETE FROM trips WHERE id = :id")
     suspend fun deleteById(id: Long)
@@ -70,15 +77,9 @@ interface TripDao {
     @Query("DELETE FROM trips")
     suspend fun deleteAll()
 
-    /**
-     * Replaces every row with [trips] in a single transaction. If any
-     * insert fails, the whole operation rolls back and the previous
-     * contents are preserved — important for import, where deleting
-     * first and failing partway would lose the user's data.
-     */
     @Transaction
     suspend fun replaceAll(trips: List<Trip>) {
         deleteAll()
-        trips.forEach { insert(it) }
+        insertAll(trips)
     }
 }

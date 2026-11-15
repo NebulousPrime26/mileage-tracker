@@ -72,7 +72,7 @@ object TripBackup {
         put("licensePlate", licensePlate)
         put("startMileage", startMileage)
         put("endMileage", endMileage)
-        put("privateUse", privateUse)
+        put("isPrivate", isPrivate)
         put("notes", notes)
         put("isDraft", isDraft)
     }
@@ -86,7 +86,7 @@ object TripBackup {
         licensePlate = optString("licensePlate", ""),
         startMileage = getDouble("startMileage"),
         endMileage = getDouble("endMileage"),
-        privateUse = getBoolean("privateUse"),
+        isPrivate = getBoolean("isPrivate"),
         notes = optString("notes", ""),
         isDraft = optBoolean("isDraft", false),
     )

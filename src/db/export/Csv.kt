@@ -63,8 +63,8 @@ private fun buildCsv(context: Context, trips: List<Trip>): String {
                 trip.licensePlate,
                 trip.startMileage.csvNumber(),
                 trip.endMileage.csvNumber(),
-                trip.distanceMileage.csvNumber(),
-                if (trip.privateUse) yes else no,
+                trip.distance.csvNumber(),
+                if (trip.isPrivate) yes else no,
                 trip.notes,
             )
             sb.append(row.joinToString(",") { escape(it) }).append('\n')

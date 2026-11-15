@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b1e65c01bf2814d6db03b3a9778a361b",
+    "identityHash": "7ba7c8000347e6eef6ff853092a33f92",
     "entities": [
       {
         "tableName": "trips",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `startPostalCode` TEXT NOT NULL, `endPostalCode` TEXT NOT NULL, `licensePlate` TEXT NOT NULL, `startMileage` REAL NOT NULL, `endMileage` REAL NOT NULL, `privateUse` INTEGER NOT NULL, `notes` TEXT NOT NULL, `isDraft` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `startPostalCode` TEXT NOT NULL, `endPostalCode` TEXT NOT NULL, `licensePlate` TEXT NOT NULL, `startMileage` REAL NOT NULL, `endMileage` REAL NOT NULL, `isPrivate` INTEGER NOT NULL, `notes` TEXT NOT NULL, `isDraft` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -57,8 +57,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "privateUse",
-            "columnName": "privateUse",
+            "fieldPath": "isPrivate",
+            "columnName": "isPrivate",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -85,7 +85,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b1e65c01bf2814d6db03b3a9778a361b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7ba7c8000347e6eef6ff853092a33f92')"
     ]
   }
 }

@@ -249,12 +249,12 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                     .get(Calendar.YEAR)
             }
             .map { (year, yearTrips) ->
-                val privateTrips = yearTrips.filter { it.privateUse }
-                val businessTrips = yearTrips.filter { !it.privateUse }
+                val privateTrips = yearTrips.filter { it.isPrivate }
+                val businessTrips = yearTrips.filter { !it.isPrivate }
                 YearlyStats(
                     year = year,
-                    privateMileage = privateTrips.sumOf { it.distanceMileage },
-                    businessMileage = businessTrips.sumOf { it.distanceMileage },
+                    privateMileage = privateTrips.sumOf { it.distance },
+                    businessMileage = businessTrips.sumOf { it.distance },
                     privateDurationMillis = privateTrips.sumOf { it.durationMillis },
                     businessDurationMillis = businessTrips.sumOf { it.durationMillis },
                     privateTripCount = privateTrips.size,
@@ -284,13 +284,13 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
             }
             .map { (key, monthTrips) ->
-                val privateTrips = monthTrips.filter { it.privateUse }
-                val businessTrips = monthTrips.filter { !it.privateUse }
+                val privateTrips = monthTrips.filter { it.isPrivate }
+                val businessTrips = monthTrips.filter { !it.isPrivate }
                 MonthlyStats(
                     year = key.first,
                     month = key.second,
-                    privateMileage = privateTrips.sumOf { it.distanceMileage },
-                    businessMileage = businessTrips.sumOf { it.distanceMileage },
+                    privateMileage = privateTrips.sumOf { it.distance },
+                    businessMileage = businessTrips.sumOf { it.distance },
                     privateDurationMillis = privateTrips.sumOf { it.durationMillis },
                     businessDurationMillis = businessTrips.sumOf { it.durationMillis },
                     privateTripCount = privateTrips.size,
