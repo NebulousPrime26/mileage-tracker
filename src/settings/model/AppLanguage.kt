@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.settings
+package com.nebulousprime26.mileage_tracker.settings.model
 
 /**
  * Which language the app should display. SYSTEM follows the device
