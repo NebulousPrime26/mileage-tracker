@@ -24,7 +24,7 @@ import com.nebulousprime26.mileage_tracker.db.exportDb
 import com.nebulousprime26.mileage_tracker.db.shareCsv
 import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.db.local.TripDao
-import com.nebulousprime26.mileage_tracker.db.local.getDatabase
+import com.nebulousprime26.mileage_tracker.db.local.MileageDatabase
 import com.nebulousprime26.mileage_tracker.settings.AppLanguage
 import com.nebulousprime26.mileage_tracker.settings.SettingsRepository
 import com.nebulousprime26.mileage_tracker.settings.Theme
@@ -68,7 +68,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      */
     private var pendingExport: EncryptedBackup? = null
 
-    private val dao: TripDao = getDatabase(app).tripDao()
+    private val dao: TripDao = MileageDatabase.getInstance(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
 
     /**

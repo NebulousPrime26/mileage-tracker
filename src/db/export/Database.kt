@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.first
 import com.nebulousprime26.mileage_tracker.db.cipher.encryptText
 import com.nebulousprime26.mileage_tracker.db.cipher.EncryptedBackup
 import com.nebulousprime26.mileage_tracker.db.local.Trip
-import com.nebulousprime26.mileage_tracker.db.local.getDatabase
+import com.nebulousprime26.mileage_tracker.db.local.MileageDatabase
 
 private const val JSON_FORMAT_VERSION = 1
 
@@ -20,7 +20,7 @@ suspend fun exportDb(context: Context): EncryptedBackup {
 }
 
 private suspend fun serialiseTrips(context: Context): ByteArray {
-    val trips = getDatabase(context).tripDao().getAll().first()
+    val trips = MileageDatabase.getInstance(context).tripDao().getAll().first()
 
     val root = JSONObject().apply {
         put("formatVersion", JSON_FORMAT_VERSION)
