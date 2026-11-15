@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui.screens
+package com.nebulousprime26.mileage_tracker.ui.features.trips
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
