@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui.screens
+package com.nebulousprime26.mileage_tracker.ui.features.landing
 
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
