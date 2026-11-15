@@ -17,7 +17,9 @@ import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.db.cipher.BackupException
 import com.nebulousprime26.mileage_tracker.db.cipher.EncryptedBackup
 import com.nebulousprime26.mileage_tracker.db.cipher.TripBackup
-import com.nebulousprime26.mileage_tracker.db.cipher.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.cipher.formatKey
+import com.nebulousprime26.mileage_tracker.db.cipher.parseKey
+import com.nebulousprime26.mileage_tracker.db.cipher.decryptBlob
 import com.nebulousprime26.mileage_tracker.db.exportDb
 import com.nebulousprime26.mileage_tracker.db.shareCsv
 import com.nebulousprime26.mileage_tracker.db.local.Trip
@@ -321,7 +323,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 val backup = exportDb(app)
                 pendingExport = backup
                 _backupState.value = BackupState.ExportPreview(
-                    key = TripCrypto.formatKey(backup.key),
+                    key = formatKey(backup.key),
                     filename = backup.filename,
                 )
             } catch (t: Throwable) {
@@ -398,12 +400,12 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             _backupState.value = BackupState.Working
             val app = getApplication<Application>()
             try {
-                val key = TripCrypto.parseKey(pending.key)
+                val key = parseKey(pending.key)
                     ?: throw BackupException(R.string.backup_error_invalid_key)
                 val bytes = app.contentResolver
                     .openInputStream(pending.uri)?.use { it.readBytes() }
                     ?: throw BackupException(R.string.backup_error_read_file)
-                val json = TripCrypto.decrypt(bytes, key)
+                val json = decryptBlob(bytes, key)
                     ?: throw BackupException(R.string.backup_error_decrypt)
                 val importedTrips = TripBackup.deserializeTrips(json)
                 dao.replaceAll(importedTrips)

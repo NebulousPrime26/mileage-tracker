@@ -47,63 +47,58 @@ fun encryptText(plaintext: ByteArray): EncryptedBackup {
     
     return EncryptedBackup(key, blob, "mileage-backup-$stamp.mlgbak")
 }
-    
+
 /**
- * AES-256-GCM encryption for trip backups. The key is generated fresh
- * for each export and never stored — the user is shown it once and
- * must write it down to be able to import later.
- */
-object TripCrypto {
-    /**
-     * Formats a key as uppercase hex in 4-character groups, e.g.
-     * "A3F2 B19C 4D7E 8A1F …". Easier to transcribe by hand than a
-     * single unbroken string.
-     */
-    fun formatKey(key: ByteArray): String =
-        key.joinToString("") { "%02X".format(it) }
-            .chunked(4)
-            .joinToString(" ")
-
-    /**
-     * Parses a key from user input. Ignores whitespace and case.
-     * Returns null if the input isn't a valid 64-character hex string.
-     */
-    fun parseKey(input: String): ByteArray? {
-        val cleaned = input.filterNot { it.isWhitespace() }.uppercase()
-        if (cleaned.length != KEY_SIZE_BYTES * 2) return null
-        if (!cleaned.all { it in '0'..'9' || it in 'A'..'F' }) return null
-        return ByteArray(KEY_SIZE_BYTES) { i ->
-            cleaned.substring(i * 2, i * 2 + 2).toInt(16).toByte()
-        }
-    }
-
+* Decrypts a blob produced by [encrypt]. Returns null on any failure —
+* wrong key, corrupted file, or an unrecognized format.
+*/
+fun decryptBlob(blob: ByteArray, key: ByteArray): ByteArray? {
+    if (key.size != KEY_SIZE_BYTES) return null
     
+    val headerSize = MAGIC.size + 1 + IV_SIZE_BYTES
+    
+    if (blob.size < headerSize + GCM_TAG_BITS / 8) return null
+    if (!blob.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) return null
+    if (blob[MAGIC.size] != FORMAT_VERSION) return null
 
-    /**
-     * Decrypts a blob produced by [encrypt]. Returns null on any failure —
-     * wrong key, corrupted file, or an unrecognized format.
-     */
-    fun decrypt(blob: ByteArray, key: ByteArray): ByteArray? {
-        if (key.size != KEY_SIZE_BYTES) return null
-        val headerSize = MAGIC.size + 1 + IV_SIZE_BYTES
-        if (blob.size < headerSize + GCM_TAG_BITS / 8) return null
-        if (!blob.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) return null
-        if (blob[MAGIC.size] != FORMAT_VERSION) return null
+    val ivStart = MAGIC.size + 1
+    val iv = blob.copyOfRange(ivStart, ivStart + IV_SIZE_BYTES)
+    val ciphertext = blob.copyOfRange(ivStart + IV_SIZE_BYTES, blob.size)
 
-        val ivStart = MAGIC.size + 1
-        val iv = blob.copyOfRange(ivStart, ivStart + IV_SIZE_BYTES)
-        val ciphertext = blob.copyOfRange(ivStart + IV_SIZE_BYTES, blob.size)
+    return try {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            GCMParameterSpec(GCM_TAG_BITS, iv),
+        )
+        cipher.doFinal(ciphertext)
+    } catch (_: Throwable) {
+        null
+    }
+}
 
-        return try {
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(
-                Cipher.DECRYPT_MODE,
-                SecretKeySpec(key, "AES"),
-                GCMParameterSpec(GCM_TAG_BITS, iv),
-            )
-            cipher.doFinal(ciphertext)
-        } catch (_: Throwable) {
-            null
-        }
+/**
+* Formats a key as uppercase hex in 4-character groups, e.g.
+* "A3F2 B19C 4D7E 8A1F …". Easier to transcribe by hand than a
+* single unbroken string.
+*/
+fun formatKey(key: ByteArray): String =
+    key.joinToString("") { "%02X".format(it) }
+        .chunked(4)
+        .joinToString(" ")
+
+/**
+* Parses a key from user input. Ignores whitespace and case.
+* Returns null if the input isn't a valid 64-character hex string.
+*/
+fun parseKey(input: String): ByteArray? {
+    val cleaned = input.filterNot { it.isWhitespace() }.uppercase()
+    
+    if (cleaned.length != KEY_SIZE_BYTES * 2) return null
+    if (!cleaned.all { it in '0'..'9' || it in 'A'..'F' }) return null
+    
+    return ByteArray(KEY_SIZE_BYTES) { i ->
+        cleaned.substring(i * 2, i * 2 + 2).toInt(16).toByte()
     }
 }
