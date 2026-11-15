@@ -61,7 +61,6 @@ import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.domain.MonthlyStats
 import com.nebulousprime26.mileage_tracker.domain.StatsMetric
 import com.nebulousprime26.mileage_tracker.domain.YearlyStats
-import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 
 private val PrivateLight = Color(0xFF1976D2)
 private val PrivateDark = Color(0xFF64B5F6)
@@ -75,7 +74,7 @@ private const val MILLIS_PER_HOUR = 3_600_000.0
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
-    viewModel: TripViewModel,
+    viewModel: StatsViewModel,
     onBack: () -> Unit,
 ) {
     val yearlyStats by viewModel.yearlyStats.collectAsStateWithLifecycle()

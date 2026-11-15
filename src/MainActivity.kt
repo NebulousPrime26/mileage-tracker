@@ -20,7 +20,7 @@ import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.features.settings.SettingsRoute
 import com.nebulousprime26.mileage_tracker.ui.features.landing.LandingScreen
-import com.nebulousprime26.mileage_tracker.ui.features.stats.StatsScreen
+import com.nebulousprime26.mileage_tracker.ui.features.stats.StatsRoute
 import com.nebulousprime26.mileage_tracker.ui.features.tripentry.TripEntryScreen
 import com.nebulousprime26.mileage_tracker.ui.features.trips.TripsScreen
 
@@ -114,14 +114,9 @@ class MainActivity : AppCompatActivity() {
                         onBack = { screen = Screen.Landing },
                     )
 
-                    Screen.Stats -> StatsScreen(
-                        viewModel = vm,
-                        onBack = { screen = Screen.Trips },
-                    )
+                    Screen.Stats -> StatsRoute( onBack = { screen = Screen.Trips } )
 
-                    Screen.Settings -> SettingsRoute(
-                        onBack = { screen = Screen.Landing },
-                    )
+                    Screen.Settings -> SettingsRoute( onBack = { screen = Screen.Landing } )
 
                     Screen.Entry -> TripEntryScreen(
                         existingTrip = editingTrip,
