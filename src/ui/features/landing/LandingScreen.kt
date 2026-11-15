@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.dialogs.BackupErrorDialog
 import com.nebulousprime26.mileage_tracker.ui.dialogs.ExportDoneDialog
 import com.nebulousprime26.mileage_tracker.ui.dialogs.ExportKeyDialog
@@ -37,13 +36,13 @@ import com.nebulousprime26.mileage_tracker.ui.dialogs.ImportKeyDialog
 @Composable
 fun LandingScreen(
     versionName: String,
-    viewModel: TripViewModel,
+    viewModel: LandingViewModel,
     onContinue: () -> Unit,
     onSettings: () -> Unit,
 ) {
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val shareUri by viewModel.shareUri.collectAsStateWithLifecycle()
-    val busy = backupState is TripViewModel.BackupState.Working
+    val busy = backupState is LandingViewModel.BackupState.Working
     val context = LocalContext.current
 
     val importPicker = rememberLauncherForActivityResult(
@@ -149,43 +148,43 @@ fun LandingScreen(
  */
 @Composable
 private fun BackupDialogs(
-    state: TripViewModel.BackupState,
-    viewModel: TripViewModel,
+    state: LandingViewModel.BackupState,
+    viewModel: LandingViewModel,
 ) {
     when (state) {
-        is TripViewModel.BackupState.ExportPreview -> ExportKeyDialog(
+        is LandingViewModel.BackupState.ExportPreview -> ExportKeyDialog(
             key = state.key,
             filename = state.filename,
             onConfirm = viewModel::confirmExport,
             onCancel = viewModel::cancelExport,
         )
 
-        is TripViewModel.BackupState.Exported -> ExportDoneDialog(
+        is LandingViewModel.BackupState.Exported -> ExportDoneDialog(
             filename = state.filename,
             onDismiss = viewModel::dismissBackupState,
         )
 
-        is TripViewModel.BackupState.ImportAwaitingKey -> ImportKeyDialog(
+        is LandingViewModel.BackupState.ImportAwaitingKey -> ImportKeyDialog(
             onConfirm = { key -> viewModel.submitImportKey(state.uri, key) },
             onDismiss = viewModel::dismissBackupState,
         )
 
-        is TripViewModel.BackupState.ImportConfirming -> ImportConfirmDialog(
+        is LandingViewModel.BackupState.ImportConfirming -> ImportConfirmDialog(
             onConfirm = viewModel::confirmImport,
             onDismiss = viewModel::dismissBackupState,
         )
 
-        is TripViewModel.BackupState.Imported -> ImportDoneDialog(
+        is LandingViewModel.BackupState.Imported -> ImportDoneDialog(
             count = state.count,
             onDismiss = viewModel::dismissBackupState,
         )
 
-        is TripViewModel.BackupState.Failed -> BackupErrorDialog(
+        is LandingViewModel.BackupState.Failed -> BackupErrorDialog(
             message = state.message,
             onDismiss = viewModel::dismissBackupState,
         )
 
-        TripViewModel.BackupState.Idle,
-        TripViewModel.BackupState.Working -> Unit
+        LandingViewModel.BackupState.Idle,
+        LandingViewModel.BackupState.Working -> Unit
     }
 }
