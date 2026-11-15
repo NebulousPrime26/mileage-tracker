@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.domain.MonthlyStats
+import com.nebulousprime26.mileage_tracker.domain.YearlyStats
 import com.nebulousprime26.mileage_tracker.db.cipher.EncryptedBackup
 import com.nebulousprime26.mileage_tracker.db.cipher.Encryption
 import com.nebulousprime26.mileage_tracker.db.export.BackupException

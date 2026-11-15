@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui
+package com.nebulousprime26.mileage_tracker.domain
 
 /** Which metric the stats screen is currently displaying. */
 enum class StatsMetric { MILEAGE, DURATION }
