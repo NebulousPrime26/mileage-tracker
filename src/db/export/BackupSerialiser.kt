@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.db.cipher
+package com.nebulousprime26.mileage_tracker.db.export
 
 import android.content.ContentValues
 import android.content.Context

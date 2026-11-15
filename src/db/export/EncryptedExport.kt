@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.db
+package com.nebulousprime26.mileage_tracker.db.export
 
 import android.content.Context
 import org.json.JSONArray
