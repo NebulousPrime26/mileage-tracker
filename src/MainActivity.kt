@@ -15,7 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.nebulousprime26.mileage_tracker.db.local.Trip
-import com.nebulousprime26.mileage_tracker.settings.AppTheme
+import com.nebulousprime26.mileage_tracker.ui.theme.AppTheme
 import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.screens.SettingsScreen

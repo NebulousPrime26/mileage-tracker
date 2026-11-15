@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
-import com.nebulousprime26.mileage_tracker.settings.Theme
+import com.nebulousprime26.mileage_tracker.settings.model.Theme
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "settings",

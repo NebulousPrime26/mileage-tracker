@@ -23,9 +23,9 @@ import com.nebulousprime26.mileage_tracker.db.export.shareCsv
 import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.db.local.TripDao
 import com.nebulousprime26.mileage_tracker.db.DatabaseProvider
-import com.nebulousprime26.mileage_tracker.settings.Theme
 import com.nebulousprime26.mileage_tracker.settings.data.SettingsRepository
 import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
+import com.nebulousprime26.mileage_tracker.settings.model.Theme
 
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 

@@ -30,7 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
-import com.nebulousprime26.mileage_tracker.settings.Theme
+import com.nebulousprime26.mileage_tracker.settings.model.Theme
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
