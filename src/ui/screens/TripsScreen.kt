@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui
+package com.nebulousprime26.mileage_tracker.ui.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -73,8 +73,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.Trip
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
@@ -84,6 +82,10 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.roundToInt
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.db.local.Trip
+import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 
 private const val SWEEP_DURATION_MS = 220
 private const val FILTER_SHEET_ANIM_MS = 350
@@ -140,9 +142,9 @@ private fun List<Trip>.applyFilter(spec: TripFilterSpec): List<Trip> = filter { 
             trip.endPostalCode.contains(spec.endPostalContains, ignoreCase = true)) &&
         (spec.licensePlateContains.isBlank() ||
             trip.licensePlate.contains(spec.licensePlateContains, ignoreCase = true)) &&
-        (spec.minDistanceKm == null || trip.distanceMileage >= spec.minDistanceKm) &&
-        (spec.maxDistanceKm == null || trip.distanceMileage <= spec.maxDistanceKm) &&
-        (spec.privateOnly == null || trip.privateUse == spec.privateOnly)
+        (spec.minDistanceKm == null || trip.distance >= spec.minDistanceKm) &&
+        (spec.maxDistanceKm == null || trip.distance <= spec.maxDistanceKm) &&
+        (spec.privateOnly == null || trip.isPrivate == spec.privateOnly)
 }
 
 private fun formatDateRange(start: Long, end: Long): String {
@@ -842,7 +844,7 @@ private fun TripSummary(trip: Trip) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        if (trip.privateUse) {
+        if (trip.isPrivate) {
             Text(
                 text = stringResource(R.string.trips_private_tag),
                 style = MaterialTheme.typography.labelMedium,
@@ -949,7 +951,7 @@ private fun TripRow(
                     Text(
                         text = stringResource(
                             R.string.trips_km_suffix,
-                            distanceFormatter.format(trip.distanceMileage),
+                            distanceFormatter.format(trip.distance),
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,

@@ -4,17 +4,6 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.AppLanguage
-import com.nebulousprime26.mileage_tracker.data.BackupException
-import com.nebulousprime26.mileage_tracker.data.SettingsRepository
-import com.nebulousprime26.mileage_tracker.data.ThemeMode
-import com.nebulousprime26.mileage_tracker.data.Trip
-import com.nebulousprime26.mileage_tracker.data.TripBackup
-import com.nebulousprime26.mileage_tracker.data.TripCrypto
-import com.nebulousprime26.mileage_tracker.data.TripCsv
-import com.nebulousprime26.mileage_tracker.data.TripDao
-import com.nebulousprime26.mileage_tracker.data.getDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +12,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.db.cipher.EncryptedBackup
+import com.nebulousprime26.mileage_tracker.db.cipher.Encryption
+import com.nebulousprime26.mileage_tracker.db.export.BackupException
+import com.nebulousprime26.mileage_tracker.db.export.TripBackup
+import com.nebulousprime26.mileage_tracker.db.export.exportDb
+import com.nebulousprime26.mileage_tracker.db.export.shareCsv
+import com.nebulousprime26.mileage_tracker.db.local.Trip
+import com.nebulousprime26.mileage_tracker.db.local.TripDao
+import com.nebulousprime26.mileage_tracker.db.DatabaseProvider
+import com.nebulousprime26.mileage_tracker.settings.AppLanguage
+import com.nebulousprime26.mileage_tracker.settings.SettingsRepository
+import com.nebulousprime26.mileage_tracker.settings.Theme
 
 class TripViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -61,15 +64,9 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      * Holds the encrypted backup in memory between the preview dialog
      * and the confirmation. Cleared on confirm, cancel, or failure.
      */
-    private class PendingExport(
-        val key: ByteArray,
-        val filename: String,
-        val encryptedBytes: ByteArray,
-    )
+    private var pendingExport: EncryptedBackup? = null
 
-    private var pendingExport: PendingExport? = null
-
-    private val dao: TripDao = getDatabase(app).tripDao()
+    private val dao: TripDao = DatabaseProvider.getInstance(app).tripDao()
     private val settingsRepo = SettingsRepository(app)
 
     /**
@@ -143,15 +140,15 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsRepo.setFabOnRight(onRight) }
     }
 
-    val themeMode: StateFlow<ThemeMode> = settingsRepo.themeMode
+    val theme: StateFlow<Theme> = settingsRepo.theme
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemeMode.SYSTEM,
+            initialValue = Theme.SYSTEM,
         )
 
-    fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch { settingsRepo.setThemeMode(mode) }
+    fun setTheme(mode: Theme) {
+        viewModelScope.launch { settingsRepo.setTheme(mode) }
     }
 
     val appLanguage: StateFlow<AppLanguage> = settingsRepo.appLanguage
@@ -250,12 +247,12 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                     .get(Calendar.YEAR)
             }
             .map { (year, yearTrips) ->
-                val privateTrips = yearTrips.filter { it.privateUse }
-                val businessTrips = yearTrips.filter { !it.privateUse }
+                val privateTrips = yearTrips.filter { it.isPrivate }
+                val businessTrips = yearTrips.filter { !it.isPrivate }
                 YearlyStats(
                     year = year,
-                    privateMileage = privateTrips.sumOf { it.distanceMileage },
-                    businessMileage = businessTrips.sumOf { it.distanceMileage },
+                    privateMileage = privateTrips.sumOf { it.distance },
+                    businessMileage = businessTrips.sumOf { it.distance },
                     privateDurationMillis = privateTrips.sumOf { it.durationMillis },
                     businessDurationMillis = businessTrips.sumOf { it.durationMillis },
                     privateTripCount = privateTrips.size,
@@ -285,13 +282,13 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
             }
             .map { (key, monthTrips) ->
-                val privateTrips = monthTrips.filter { it.privateUse }
-                val businessTrips = monthTrips.filter { !it.privateUse }
+                val privateTrips = monthTrips.filter { it.isPrivate }
+                val businessTrips = monthTrips.filter { !it.isPrivate }
                 MonthlyStats(
                     year = key.first,
                     month = key.second,
-                    privateMileage = privateTrips.sumOf { it.distanceMileage },
-                    businessMileage = businessTrips.sumOf { it.distanceMileage },
+                    privateMileage = privateTrips.sumOf { it.distance },
+                    businessMileage = businessTrips.sumOf { it.distance },
                     privateDurationMillis = privateTrips.sumOf { it.durationMillis },
                     businessDurationMillis = businessTrips.sumOf { it.durationMillis },
                     privateTripCount = privateTrips.size,
@@ -318,22 +315,14 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun exportTrips() {
         viewModelScope.launch {
+            val app = getApplication<Application>()
             _backupState.value = BackupState.Working
             try {
-                val allTrips = dao.getAll().first()
-                val json = TripBackup.serializeTrips(allTrips)
-                val key = TripCrypto.generateKey()
-                val encrypted = TripCrypto.encrypt(json, key)
-                val filename = TripBackup.defaultFilename()
-
-                pendingExport = PendingExport(
-                    key = key,
-                    filename = filename,
-                    encryptedBytes = encrypted,
-                )
+                val backup = exportDb(app)
+                pendingExport = backup
                 _backupState.value = BackupState.ExportPreview(
-                    key = TripCrypto.formatKey(key),
-                    filename = filename,
+                    key = Encryption.formatKey(backup.key),
+                    filename = backup.filename,
                 )
             } catch (t: Throwable) {
                 pendingExport = null
@@ -362,7 +351,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                 TripBackup.writeToDownloads(
                     context = getApplication(),
                     filename = pending.filename,
-                    bytes = pending.encryptedBytes,
+                    bytes = pending.blob,
                 )
                 pendingExport = null
                 _backupState.value = BackupState.Exported(pending.filename)
@@ -409,12 +398,12 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
             _backupState.value = BackupState.Working
             val app = getApplication<Application>()
             try {
-                val key = TripCrypto.parseKey(pending.key)
+                val key = Encryption.parseKey(pending.key)
                     ?: throw BackupException(R.string.backup_error_invalid_key)
                 val bytes = app.contentResolver
                     .openInputStream(pending.uri)?.use { it.readBytes() }
                     ?: throw BackupException(R.string.backup_error_read_file)
-                val json = TripCrypto.decrypt(bytes, key)
+                val json = Encryption.decryptBlob(bytes, key)
                     ?: throw BackupException(R.string.backup_error_decrypt)
                 val importedTrips = TripBackup.deserializeTrips(json)
                 dao.replaceAll(importedTrips)
@@ -457,10 +446,7 @@ class TripViewModel(app: Application) : AndroidViewModel(app) {
                     )
                     return@launch
                 }
-                val csv = TripCsv.build(app, allTrips)
-                val filename = TripCsv.defaultFilename()
-                val uri = TripCsv.writeToCache(app, filename, csv)
-                _shareUri.value = uri
+                _shareUri.value = shareCsv(app, allTrips)
             } catch (t: Throwable) {
                 _backupState.value = BackupState.Failed(
                     resolveMessage(t, R.string.backup_error_prepare_csv)

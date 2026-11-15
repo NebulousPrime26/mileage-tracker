@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui
+package com.nebulousprime26.mileage_tracker.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,14 +48,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.Trip
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.db.local.Trip
 
 private val mileageFormatter = DecimalFormat("#,##0.##")
 private val shortDateFormatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
@@ -101,8 +102,8 @@ fun TripEntryScreen(
         val v = existingTrip?.endMileage
         mutableStateOf(if (v == null || v == 0.0) "" else v.toString())
     }
-    var privateUse by remember(existingTrip?.id) {
-        mutableStateOf(existingTrip?.privateUse ?: false)
+    var isPrivate by remember(existingTrip?.id) {
+        mutableStateOf(existingTrip?.isPrivate ?: false)
     }
     var notes by remember(existingTrip?.id) {
         mutableStateOf(existingTrip?.notes ?: "")
@@ -310,7 +311,7 @@ fun TripEntryScreen(
                         licensePlate = licensePlate,
                         startMileage = startMileage ?: 0.0,
                         endMileage = endMileage ?: 0.0,
-                        privateUse = privateUse,
+                        isPrivate = isPrivate,
                         notes = notes,
                         isDraft = true,
                     )
@@ -341,7 +342,7 @@ fun TripEntryScreen(
                         licensePlate = licensePlate,
                         startMileage = startMileage!!,
                         endMileage = endMileage!!,
-                        privateUse = privateUse,
+                        isPrivate = isPrivate,
                         notes = notes,
                         isDraft = false,
                     )
@@ -397,10 +398,10 @@ fun TripEntryScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 FilterChip(
-                    selected = privateUse,
-                    onClick = { privateUse = !privateUse },
+                    selected = isPrivate,
+                    onClick = { isPrivate = !isPrivate },
                     label = { Text(stringResource(R.string.entry_private)) },
-                    leadingIcon = if (privateUse) {
+                    leadingIcon = if (isPrivate) {
                         {
                             Icon(
                                 imageVector = Icons.Filled.Check,

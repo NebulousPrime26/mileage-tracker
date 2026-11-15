@@ -11,7 +11,7 @@ dependencies:
   - androidx.room:room-ktx:2.8.5
   - androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0
   - androidx.lifecycle:lifecycle-runtime-compose:2.11.0
-  - net.zetetic:sqlcipher-android:4.19.1
+  - net.zetetic:sqlcipher-android:4.20.0
   - org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0
 settings:
   android:

@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data
+package com.nebulousprime26.mileage_tracker.db.export
 
 import android.content.ContentValues
 import android.content.Context
@@ -7,13 +7,15 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.annotation.StringRes
-import com.nebulousprime26.mileage_tracker.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import com.nebulousprime26.mileage_tracker.R
+import com.nebulousprime26.mileage_tracker.db.local.Trip
 
 /**
  * Thrown when a backup operation fails. Carries a string resource ID
@@ -70,7 +72,7 @@ object TripBackup {
         put("licensePlate", licensePlate)
         put("startMileage", startMileage)
         put("endMileage", endMileage)
-        put("privateUse", privateUse)
+        put("isPrivate", isPrivate)
         put("notes", notes)
         put("isDraft", isDraft)
     }
@@ -84,7 +86,7 @@ object TripBackup {
         licensePlate = optString("licensePlate", ""),
         startMileage = getDouble("startMileage"),
         endMileage = getDouble("endMileage"),
-        privateUse = getBoolean("privateUse"),
+        isPrivate = getBoolean("isPrivate"),
         notes = optString("notes", ""),
         isDraft = optBoolean("isDraft", false),
     )
@@ -134,11 +136,5 @@ object TripBackup {
         val file = File(downloads, filename)
         file.writeBytes(bytes)
         return Uri.fromFile(file)
-    }
-
-    fun defaultFilename(): String {
-        val stamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.ROOT)
-            .format(Date())
-        return "mileage-backup-$stamp.$EXTENSION"
     }
 }

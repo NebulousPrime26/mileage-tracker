@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.data
+package com.nebulousprime26.mileage_tracker.db.cipher
 
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
@@ -10,7 +10,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import java.security.SecureRandom
 
-class SqlCipherKeyManager(private val sharedPreferences: SharedPreferences) {
+class DbKeyManager(private val sharedPreferences: SharedPreferences) {
 
     private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     private val masterKeyAlias = "sqlcipher_master_key"
@@ -23,12 +23,13 @@ class SqlCipherKeyManager(private val sharedPreferences: SharedPreferences) {
         val encryptedKey = sharedPreferences.getString("encrypted_db_key", null)
         if (encryptedKey != null) {
             return decryptKey(encryptedKey)
-        } else {
-            val newKey = generateRandomKey()
-            val encryptedNewKey = encryptKey(newKey)
-            sharedPreferences.edit().putString("encrypted_db_key", encryptedNewKey).apply()
-            return newKey
         }
+
+        val newKey = generateRandomKey()
+        val encryptedNewKey = encryptKey(newKey)
+        sharedPreferences.edit().putString("encrypted_db_key", encryptedNewKey).apply()
+
+        return newKey
     }
 
     private fun generateMasterKeyIfNeeded() {
@@ -42,6 +43,7 @@ class SqlCipherKeyManager(private val sharedPreferences: SharedPreferences) {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(256)
                 .build()
+
             keyGenerator.init(keyGenSpec)
             keyGenerator.generateKey()
         }
@@ -50,16 +52,16 @@ class SqlCipherKeyManager(private val sharedPreferences: SharedPreferences) {
     private fun generateRandomKey(): ByteArray {
         val key = ByteArray(32) // 256-bit key
         SecureRandom().nextBytes(key)
+
         return key
     }
 
     private fun encryptKey(key: ByteArray): String {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, getMasterKey())
-        val iv = cipher.iv
-        val encryptedKey = cipher.doFinal(key)
-        // Combine IV and encrypted key for storage
-        val combined = iv + encryptedKey
+
+        val combined = cipher.iv + cipher.doFinal(key) // Combine IV and encrypted key for storage
+
         return android.util.Base64.encodeToString(combined, android.util.Base64.DEFAULT)
     }
 
@@ -71,6 +73,7 @@ class SqlCipherKeyManager(private val sharedPreferences: SharedPreferences) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         val gcmSpec = GCMParameterSpec(128, iv)
         cipher.init(Cipher.DECRYPT_MODE, getMasterKey(), gcmSpec)
+
         return cipher.doFinal(encryptedKey)
     }
 

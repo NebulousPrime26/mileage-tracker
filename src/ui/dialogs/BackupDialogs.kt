@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui
+package com.nebulousprime26.mileage_tracker.ui.dialogs
 
 import android.content.ClipData
 import androidx.compose.foundation.layout.Arrangement
@@ -25,8 +25,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.data.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.cipher.Encryption
 
 @Composable
 fun ExportKeyDialog(
@@ -116,7 +117,7 @@ fun ImportKeyDialog(
     onDismiss: () -> Unit,
 ) {
     var keyInput by remember { mutableStateOf("") }
-    val isValid = TripCrypto.parseKey(keyInput) != null
+    val isValid = Encryption.parseKey(keyInput) != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
