@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui.screens
+package com.nebulousprime26.mileage_tracker.ui.features.tripentry
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

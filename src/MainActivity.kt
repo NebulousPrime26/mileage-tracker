@@ -21,7 +21,7 @@ import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 import com.nebulousprime26.mileage_tracker.ui.features.settings.SettingsScreen
 import com.nebulousprime26.mileage_tracker.ui.features.landing.LandingScreen
 import com.nebulousprime26.mileage_tracker.ui.features.stats.StatsScreen
-import com.nebulousprime26.mileage_tracker.ui.screens.TripEntryScreen
+import com.nebulousprime26.mileage_tracker.ui.features.tripentry.TripEntryScreen
 import com.nebulousprime26.mileage_tracker.ui.features.trips.TripsScreen
 
 private enum class Screen { Landing, Trips, Entry, Stats, Settings }
