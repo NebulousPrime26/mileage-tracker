@@ -31,12 +31,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nebulousprime26.mileage_tracker.R
 import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
 import com.nebulousprime26.mileage_tracker.settings.model.Theme
-import com.nebulousprime26.mileage_tracker.ui.TripViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: TripViewModel,
+    viewModel: SettingsViewModel,
     onBack: () -> Unit,
 ) {
     val fabOnRight by viewModel.fabOnRight.collectAsStateWithLifecycle()

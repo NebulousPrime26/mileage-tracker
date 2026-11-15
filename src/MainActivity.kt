@@ -18,7 +18,7 @@ import com.nebulousprime26.mileage_tracker.db.local.Trip
 import com.nebulousprime26.mileage_tracker.ui.theme.AppTheme
 import com.nebulousprime26.mileage_tracker.settings.model.AppLanguage
 import com.nebulousprime26.mileage_tracker.ui.TripViewModel
-import com.nebulousprime26.mileage_tracker.ui.features.settings.SettingsScreen
+import com.nebulousprime26.mileage_tracker.ui.features.settings.SettingsRoute
 import com.nebulousprime26.mileage_tracker.ui.features.landing.LandingScreen
 import com.nebulousprime26.mileage_tracker.ui.features.stats.StatsScreen
 import com.nebulousprime26.mileage_tracker.ui.features.tripentry.TripEntryScreen
@@ -119,8 +119,7 @@ class MainActivity : AppCompatActivity() {
                         onBack = { screen = Screen.Trips },
                     )
 
-                    Screen.Settings -> SettingsScreen(
-                        viewModel = vm,
+                    Screen.Settings -> SettingsRoute(
                         onBack = { screen = Screen.Landing },
                     )
 
