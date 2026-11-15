@@ -1,4 +1,4 @@
-package com.nebulousprime26.mileage_tracker.ui.screens
+package com.nebulousprime26.mileage_tracker.ui.features.stats
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
