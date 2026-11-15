@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.nebulousprime26.mileage_tracker.R
-import com.nebulousprime26.mileage_tracker.db.cipher.TripCrypto
+import com.nebulousprime26.mileage_tracker.db.cipher.parseKey
 
 @Composable
 fun ExportKeyDialog(
@@ -117,7 +117,7 @@ fun ImportKeyDialog(
     onDismiss: () -> Unit,
 ) {
     var keyInput by remember { mutableStateOf("") }
-    val isValid = TripCrypto.parseKey(keyInput) != null
+    val isValid = parseKey(keyInput) != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
