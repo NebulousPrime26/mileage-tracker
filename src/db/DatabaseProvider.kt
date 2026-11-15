@@ -8,6 +8,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 import com.nebulousprime26.mileage_tracker.db.cipher.DbKeyManager
 import com.nebulousprime26.mileage_tracker.db.local.MileageDatabase
+import com.nebulousprime26.mileage_tracker.db.migrations.ALL_MIGRATIONS
 
 object DatabaseProvider {
 
@@ -39,6 +40,7 @@ object DatabaseProvider {
             DB_NAME
         )
             .openHelperFactory(factory)
+            .addMigrations(*ALL_MIGRATIONS)
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
